@@ -12,7 +12,7 @@ export interface Event {
   Room: string
 }
 
-export interface ScheduleProps {
+interface ScheduleProps {
   events: Event[]
 }
 

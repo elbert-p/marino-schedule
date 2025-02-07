@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Event, ScheduleProps } from '../../schedule/Schedule'; // adjust the path as necessary
+import { Event } from '../../schedule/Schedule'; // adjust the path as necessary
 
 export async function POST(req: NextRequest) {
   try {
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     const dailyResults = parsed.DailyBookingResults ?? [];
 
     // Filter each object to return only your desired fields
-    const filtered = (dailyResults as ScheduleProps).events
+    const filtered = (dailyResults as Event[])
     .map((booking: Event) => ({
       EventStart: booking.EventStart,
       EventEnd: booking.EventEnd,
