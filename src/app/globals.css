@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+.schedule-title {
+  font-family: "Bebas Neue", sans-serif !important;
+  letter-spacing: 2px;
+}
+
 /* :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -25,6 +30,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+  
 
 * {
   box-sizing: border-box;
