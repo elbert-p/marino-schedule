@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useMemo, useRef } from "react"
-import { format, parseISO, differenceInMinutes, addMinutes, startOfDay, endOfDay } from "date-fns"
+import { format, parseISO, differenceInMinutes, addMinutes, startOfDay, endOfDay, setHours } from "date-fns"
 import { useContainerWidth } from "./useContainerWidth"
 
 export interface Event {
@@ -25,7 +25,7 @@ const Schedule: React.FC<ScheduleProps> = ({ events }) => {
   }, [events])
 
   const timeSlots = useMemo(() => {
-    const startTime = startOfDay(parseISO(events[0].EventStart))
+    const startTime = setHours(startOfDay(parseISO(events[0].EventStart)), 4)
     const endTime = endOfDay(parseISO(events[0].EventStart))
     const slots = []
     let currentTime = startTime
@@ -50,14 +50,15 @@ const Schedule: React.FC<ScheduleProps> = ({ events }) => {
 
     return eventMap
   }, [events, rooms])
-
   const getEventStyle = (event: Event) => {
     const startTime = parseISO(event.EventStart)
     const endTime = parseISO(event.EventEnd)
-    const dayStart = startOfDay(startTime)
+    const scheduleStart = setHours(startOfDay(startTime), 4) 
+    const minutesFromScheduleStart = differenceInMinutes(startTime, scheduleStart)
+    const eventDuration = differenceInMinutes(endTime, startTime)
 
-    const top = (differenceInMinutes(startTime, dayStart) / 30) * 40
-    const height = (differenceInMinutes(endTime, startTime) / 30) * 40
+    const top = (minutesFromScheduleStart / 30) * 40
+    const height = (eventDuration / 30) * 40
 
     return {
       top: `${top}px`,
@@ -66,65 +67,65 @@ const Schedule: React.FC<ScheduleProps> = ({ events }) => {
   }
 
   const columnWidth = useMemo(() => {
-    const timeColumnWidth = 80
+    const timeColumnWidth = 100
     const availableWidth = containerWidth - timeColumnWidth
     return Math.max(200, availableWidth / rooms.length)
   }, [containerWidth, rooms.length])
 
   return (
-    <div ref={containerRef} className="overflow-x-auto">
-      <div
-        className="grid"
-        style={{
-          gridTemplateColumns: `80px repeat(${rooms.length}, ${columnWidth}px)`,
-          width: `${80 + columnWidth * rooms.length}px`,
-        }}
-      >
-        <div className="sticky left-0 bg-white z-10">
-          <div className="h-10 border-b border-gray-200"></div>
-          {timeSlots.map((time) => (
-            <div key={time} className="h-10 border-b border-gray-200 text-xs text-gray-500 text-right pr-2">
-              {time}
-            </div>
-          ))}
-        </div>
-        {rooms.map((room) => (
-          <div key={room} className="border-l border-gray-200">
-            <div className="h-10 border-b border-gray-200 font-semibold text-center truncate px-2">{room}</div>
-            <div className="relative">
-              {eventsByRoom.get(room)?.map((event, index) => (
-                <div
-                  key={`${event.EventName}-${index}`}
-                  className="absolute w-full bg-blue-100 border border-blue-200 rounded p-1 text-xs overflow-hidden"
-                  style={getEventStyle(event)}
-                >
-                  <div className="font-semibold truncate">{event.EventName}</div>
-                  <div>
-                    {format(parseISO(event.EventStart), "h:mm a")} - {format(parseISO(event.EventEnd), "h:mm a")}
-                  </div>
+    <div className="flex flex-col w-full min-h-screen bg-black">
+      <div className="bg-[#C41E3A] text-white py-8">
+        <h1 className="text-4xl font-bold text-center --font-bebas-neue">TODAY'S COURTS SCHEDULES AT MARINO</h1>
+      </div>
+      
+      <div className="flex-1 bg-white p-8">
+        
+        <div ref={containerRef} className="overflow-x-auto">
+          <div
+            className="grid"
+            style={{
+              gridTemplateColumns: `100px repeat(${rooms.length}, ${columnWidth}px)`,
+              width: `${100 + columnWidth * rooms.length}px`,
+            }}
+          >
+            <div className="sticky left-0 bg-white z-10">
+              <div className="h-12 border-b border-gray-300"></div>
+              {timeSlots.map((time) => (
+                <div key={time} className="h-10 border-b border-gray-300 text-sm text-gray-600 text-right pr-4 flex items-center justify-end">
+                  {time}
                 </div>
               ))}
-              {timeSlots.map((time) => (
-                <div key={time} className="h-10 border-b border-gray-100"></div>
-              ))}
             </div>
+            {rooms.map((room) => (
+              <div key={room} className="border-l border-gray-300 bg-gray-100">
+                <div className="h-12 border-b border-gray-300 font-semibold text-center truncate px-2 flex items-center justify-center bg-gray-200">
+                  {room}
+                </div>
+                <div className="relative">
+                  {eventsByRoom.get(room)?.map((event, index) => (
+                    <div
+                      key={`${event.EventName}-${index}`}
+                      className="absolute w-[95%] mx-[2.5%] bg-blue-100 border border-blue-200 rounded p-2 text-sm"
+                      style={getEventStyle(event)}
+                    >
+                      <div className="font-semibold truncate">{event.EventName}</div>
+                      <div className="text-xs text-gray-600">
+                        {format(parseISO(event.EventStart), "h:mm a")} - {format(parseISO(event.EventEnd), "h:mm a")}
+                      </div>
+                    </div>
+                  ))}
+                  {timeSlots.map((time) => (
+                    <div key={time} className="h-10 border-b border-gray-200"></div>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
+        </div>
       </div>
+      <div className="bg-[#C41E3A] py-8"></div>
     </div>
   )
 }
 
 export default Schedule
-
-
-// [{EventStart: '2025-02-06T05:30:00', EventEnd: '2025-02-06T10:00:00', EventName: 'Open Basketball', Room: 'BB Court #1'},
-// {EventStart: '2025-02-06T05:30:00', EventEnd: '2025-02-06T17:00:00', EventName: 'Open Basketball', Room: 'BB Court #3'},
-// {EventStart: '2025-02-06T05:30:00', EventEnd: '2025-02-07T00:00:00', EventName: 'Open Basketball', Room: 'BB Court #2'},
-// {EventStart: '2025-02-06T07:00:00', EventEnd: '2025-02-06T08:00:00', EventName: 'Group Fitness', Room: 'Studio A - wood floor'},
-// {EventStart: '2025-02-06T07:00:00', EventEnd: '2025-02-06T08:00:00', EventName: 'Group Fitness', Room: 'Studio C - Revolutionz'},
-// {EventStart: '2025-02-06T08:00:00', EventEnd: '2025-02-06T09:00:00', EventName: 'Group Fitness', Room: 'Studio A - wood floor'},
-// {EventStart: '2025-02-06T08:00:00', EventEnd: '2025-02-06T09:00:00', EventName: 'Group Fitness', Room: 'Studio C - Revolutionz'},
-// {EventStart: '2025-02-06T09:15:00', EventEnd: '2025-02-06T10:15:00', EventName: 'Group Fitness', Room: 'Studio C - Revolutionz'},
-// {EventStart: '2025-02-06T10:00:00', EventEnd: '2025-02-06T11:00:00', EventName: 'Varsity Field Hockey', Room: 'BB Court #1'},
-// {EventStart: '2025-02-06T11:00:00', EventEnd: '2025-02-06T18:00:00', EventName: 'Open Basketball', Room: 'BB Court #1'}]
