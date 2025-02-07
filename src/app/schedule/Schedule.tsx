@@ -75,7 +75,7 @@ const Schedule: React.FC<ScheduleProps> = ({ events }) => {
   return (
     <div className="flex flex-col w-full min-h-screen bg-black">
       <div className="bg-[#C41E3A] text-white py-8">
-        <h1 className="text-4xl font-bold text-center schedule-title">TODAY'S COURTS SCHEDULES AT MARINO</h1>
+        <h1 className="text-4xl font-bold text-center schedule-title">TODAYS COURTS SCHEDULES AT MARINO</h1>
       </div>
       
       <div className="flex-1 bg-white p-8">
