@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Event, ScheduleProps } from '../../schedule/Schedule'; // adjust the path as necessary
 
 export async function POST(req: NextRequest) {
   try {
@@ -35,9 +36,8 @@ export async function POST(req: NextRequest) {
     const dailyResults = parsed.DailyBookingResults ?? [];
 
     // Filter each object to return only your desired fields
-    // We'll rename GmtStart -> EventStart, GmtEnd -> EventEnd to match your request
-    const filtered = dailyResults
-    .map((booking: any) => ({
+    const filtered = (dailyResults as ScheduleProps).events
+    .map((booking: Event) => ({
       EventStart: booking.EventStart,
       EventEnd: booking.EventEnd,
       EventName: booking.EventName,
@@ -46,11 +46,19 @@ export async function POST(req: NextRequest) {
 
     // Return the filtered array of daily bookings
     return NextResponse.json(filtered);
-  } catch (err: any) {
-    console.error('Proxy error:', err);
-    return NextResponse.json(
-      { error: err.message || 'Internal Server Error' },
-      { status: 500 }
-    );
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      console.error('Proxy error:', err);
+      return NextResponse.json(
+        { error: err.message },
+        { status: 500 }
+      );
+    } else {
+      console.error('Proxy error (unexpected type):', err);
+      return NextResponse.json(
+        { error: 'Internal Server Error' },
+        { status: 500 }
+      );
+    }
   }
 }

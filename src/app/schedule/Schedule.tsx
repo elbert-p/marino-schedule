@@ -5,14 +5,14 @@ import { useMemo, useRef } from "react"
 import { format, parseISO, differenceInMinutes, addMinutes, startOfDay, endOfDay } from "date-fns"
 import { useContainerWidth } from "./useContainerWidth"
 
-interface Event {
+export interface Event {
   EventStart: string
   EventEnd: string
   EventName: string
   Room: string
 }
 
-interface ScheduleProps {
+export interface ScheduleProps {
   events: Event[]
 }
 
