@@ -1,11 +1,15 @@
-'use client';  // This marks the entire component as client-side code
+'use client';
 
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import Schedule from './schedule/Schedule';
 
 export default function HomePage() {
+  const [dailyResults, setDailyResults] = useState([]);
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     const payload = {
-      date: '2025-02-6 00:00:00',
+      date: '2025-02-06 00:00:00',
       data: {
         BuildingId: 175,
         GroupTypeId: -1,
@@ -35,17 +39,23 @@ export default function HomePage() {
         return res.json();
       })
       .then((data) => {
-        console.log('Fetched data:', data);
+        setDailyResults(data);
+        setLoading(false);
       })
       .catch((err) => {
-        console.error('Fetch error:', err);
+        console.error(err);
+        setLoading(false);
       });
   }, []);
 
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
   return (
-    <main style={{ padding: '1rem' }}>
-      <h1>My App Router Example</h1>
-      <p>Open the console to see the fetched data (or errors).</p>
+    <main className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-4">Event Schedule</h1>
+      <Schedule events={dailyResults} />
     </main>
   );
 }
