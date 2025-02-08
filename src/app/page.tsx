@@ -8,8 +8,10 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    const today = new Date().toISOString().split("T")[0] + " 00:00:00"
+
     const payload = {
-      date: "2025-02-06 00:00:00",
+      date: today,
       data: {
         BuildingId: 175,
         GroupTypeId: -1,
