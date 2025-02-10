@@ -1,5 +1,5 @@
+//src/app/api/proxy/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { Event } from '../../schedule/Schedule'; // adjust the path as necessary
 
 export async function POST(req: NextRequest) {
   try {
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     const rawData = await externalResponse.json(); // => { d: "\"DailyBookingResults\":[{...}]" }
 
     return NextResponse.json(rawData);
-    
+
   } catch (err: unknown) {
     if (err instanceof Error) {
       console.error('Proxy error:', err);

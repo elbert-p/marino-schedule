@@ -1,28 +1,36 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import Schedule from "./schedule/Schedule"
+import { useState, useEffect, useRef } from "react";
+import Schedule from "./schedule/Schedule";
 
-// Optionally, define the Event interface for better type safety
 interface Event {
-  EventStart: string
-  EventEnd: string
-  EventName: string
-  Room: string
-  // ... include any additional properties if needed
+  EventStart: string;
+  EventEnd: string;
+  EventName: string;
+  Room: string;
+}
+
+interface Capacity {
+  LocationName: string;
+  LastCount: number;
+  TotalCapacity: number;
+  LastUpdatedDateAndTime: string;
 }
 
 export default function HomePage() {
-  const [dailyResults, setDailyResults] = useState<Event[]>([])
-  const [loading, setLoading] = useState(true)
+  const [eventResults, setEventResults] = useState<Event[]>([]);
+  const [capacityResults, setCapacityResults] = useState<Capacity[]>([]);
+  const [loading, setLoading] = useState(true);
 
+  const gymCapacity = capacityResults.find(
+    (cap) => cap.LocationName === "Marino Center - Gymnasium"
+  )
+
+  // Fetch schedule events.
   useEffect(() => {
-    // For filtering, create a string for today's date in "YYYY-MM-DD" format.
-    const todayStr = new Date().toISOString().split("T")[0]
-    // For the payload, format today's date as "YYYY-MM-D 00:00:00" (without a leading zero on the day)
-    const [year, month, day] = todayStr.split("-")
-    const today = `${year}-${month}-${Number(day)} 00:00:00`
-    // console.log(today);  // For Feb 9, 2025, this will log: "2025-02-9 00:00:00"
+    const todayStr = new Date().toISOString().split("T")[0];
+    const [year, month, day] = todayStr.split("-");
+    const today = `${year}-${month}-${Number(day)} 00:00:00`;
 
     const payload = {
       date: today,
@@ -41,7 +49,7 @@ export default function HomePage() {
         PageSize: 50,
         DropEventsInPast: true,
       },
-    }
+    };
 
     fetch("/api/proxy", {
       method: "POST",
@@ -50,48 +58,96 @@ export default function HomePage() {
     })
       .then((res) => {
         if (!res.ok) {
-          throw new Error(`Network response was not ok: ${res.status}`)
+          throw new Error(`Network response was not ok: ${res.status}`);
         }
-        return res.json()
+        return res.json();
       })
       .then((rawData) => {
-        // Parse rawData.d, which is a JSON string containing the actual fields
-        const parsed = JSON.parse(rawData.d) // => { DailyBookingResults: [...], ... }
-        // Extract the DailyBookingResults array; if missing, default to an empty array
-        const dailyResults = parsed.DailyBookingResults ?? []
-        console.log("Parsed events:", dailyResults)
-
-        // Filter to include only events where the date portion of EventStart matches todayStr
+        const parsed = JSON.parse(rawData.d);
+        const dailyResults = parsed.DailyBookingResults ?? [];
         const filtered = (dailyResults as Event[])
-          .filter((booking: Event) => {
-            // Extract the date part (YYYY-MM-DD) from the EventStart string.
-            const eventDate = booking.EventStart.split("T")[0]
-            return eventDate === todayStr
-          })
+          .filter((booking: Event) => booking.EventStart.split("T")[0] === todayStr)
           .map((booking: Event) => ({
             EventStart: booking.EventStart,
             EventEnd: booking.EventEnd,
             EventName: booking.EventName,
             Room: booking.Room,
-          }))
+          }));
 
-        setDailyResults(filtered)
-        setLoading(false)
+        setEventResults(filtered);
+        console.log("Events:", filtered);
+        setLoading(false);
       })
       .catch((err) => {
-        console.error("Error fetching data:", err)
-        setLoading(false)
+        console.error("Error fetching schedule data:", err);
+        setLoading(false);
+      });
+  }, []);
+
+  // Fetch facility counts.
+  useEffect(() => {
+    fetch(
+      `https://goboardapi.azurewebsites.net/api/FacilityCount/GetCountsByAccount?AccountAPIKey=${process.env.NEXT_PUBLIC_ACCOUNT_API_KEY}`
+    )
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`Error fetching facilities: ${res.status}`);
+        }
+        return res.json();
       })
-  }, [])
+      .then((data) => {
+        const targetLocations = [
+          "Marino Center - Studio B",
+          "Marino Center - Studio A",
+          "Marino Center - Studio C",
+          "Marino Center - Gymnasium",
+        ];
+
+        const filteredFacilities = data
+          .filter((facility: any) =>
+            targetLocations.includes(facility.LocationName)
+          )
+          .map((facility: any) => ({
+            LocationName: facility.LocationName,
+            LastCount: facility.LastCount,
+            TotalCapacity: facility.TotalCapacity,
+            LastUpdatedDateAndTime: facility.LastUpdatedDateAndTime,
+          }));
+        setCapacityResults(filteredFacilities);
+        console.log("Capacities:", filteredFacilities);
+      })
+      .catch((error) => {
+        console.error("Error fetching facility counts:", error);
+      });
+  }, []);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-black text-white">
         Loading...
       </div>
-    )
+    );
   }
 
-  console.log("Parsed and filtered events:", dailyResults)
-  return <Schedule events={dailyResults} />
+  return (
+    <div className="min-h-screen flex flex-col">
+      {/* Header */}
+      <header className="bg-[#C41E3A] text-white py-3">
+        <h1 className="text-3xl text-center font-bold">Marino Court Schedule</h1>
+      </header>
+  
+      {/* Schedule area */}
+      <main className="flex-1 relative outline">
+          <Schedule
+            events={eventResults}
+            capacities={capacityResults}
+          />
+      </main>
+  
+      {/* Footer */}
+      <footer className="bg-[#C41E3A] text-white py-3 text-center">
+        Last updated: {gymCapacity ? new Date(gymCapacity.LastUpdatedDateAndTime).toLocaleTimeString() : "N/A"}
+      </footer>
+    </div>
+  );
 }
