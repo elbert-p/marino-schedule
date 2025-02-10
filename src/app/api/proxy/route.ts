@@ -29,23 +29,8 @@ export async function POST(req: NextRequest) {
     // The external API returns { "d": "JSON string" }
     const rawData = await externalResponse.json(); // => { d: "\"DailyBookingResults\":[{...}]" }
 
-    // Now parse rawData.d, which is a JSON string containing the actual fields
-    const parsed = JSON.parse(rawData.d); // => { DailyBookingResults: [...], ... }
-
-    // Extract the DailyBookingResults array
-    const dailyResults = parsed.DailyBookingResults ?? [];
-
-    // Filter each object to return only your desired fields
-    const filtered = (dailyResults as Event[])
-    .map((booking: Event) => ({
-      EventStart: booking.EventStart,
-      EventEnd: booking.EventEnd,
-      EventName: booking.EventName,
-      Room: booking.Room,
-    }));
-
-    // Return the filtered array of daily bookings
-    return NextResponse.json(filtered);
+    return NextResponse.json(rawData);
+    
   } catch (err: unknown) {
     if (err instanceof Error) {
       console.error('Proxy error:', err);
