@@ -146,7 +146,9 @@ export default function HomePage() {
   
       {/* Footer */}
       <footer className="bg-[#C41E3A] text-white py-1 text-center">
-        Last updated: {gymCapacity ? new Date(gymCapacity.LastUpdatedDateAndTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "N/A"}
+      {gymCapacity?.LastUpdatedDateAndTime && (
+        <>Last updated: {new Date(gymCapacity.LastUpdatedDateAndTime).toLocaleTimeString([], {timeStyle: 'short'})}</>
+      )}
       </footer>
     </div>
   );
