@@ -75,7 +75,7 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
       }
     });
     return grouping;
-  }, [events]);
+  }, [events, columns, eventRoomToColumn]);
 
   // ---------------------------------------------------------------------------
   // 2. Capacities Assignment
@@ -99,7 +99,7 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
       }
     });
     return grouping;
-  }, [capacities]);
+  }, [capacities, columns]);
 
   // ---------------------------------------------------------------------------
   // 3. Dynamic Timeline & Hourly Time Slots
@@ -112,19 +112,34 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
         scheduleEnd: new Date(now.setHours(24, 0, 0, 0)),
       };
     }
-    const eventStarts = events.map((event) => parseISO(event.EventStart));
+    
+    // Filter out "Open Basketball" events.
+    const nonOpenEvents = events.filter(
+      (event) => event.EventName !== "Open Basketball"
+    );
+    let earliestEventStart: Date;
+    if (nonOpenEvents.length > 0) {
+      const eventStarts = nonOpenEvents.map((event) => parseISO(event.EventStart));
+      earliestEventStart = new Date(Math.min(...eventStarts.map((d) => d.getTime())));
+      // Subtract 1 hour from the earliest non–"Open Basketball" event start time.
+      earliestEventStart = addMinutes(earliestEventStart, -60);
+    } else {
+      // Fallback: if all events are "Open Basketball", use the earliest event start.
+      const eventStarts = events.map((event) => parseISO(event.EventStart));
+      earliestEventStart = new Date(Math.min(...eventStarts.map((d) => d.getTime())));
+    }
+    // Round down to the nearest hour.
+    earliestEventStart.setMinutes(0, 0, 0);
+    const scheduleStart = earliestEventStart;
+
     const eventEnds = events.map((event) => parseISO(event.EventEnd));
-    const minStart = new Date(Math.min(...eventStarts.map((d) => d.getTime())));
     const maxEnd = new Date(Math.max(...eventEnds.map((d) => d.getTime())));
-
-    // Round down the earliest start to the nearest hour.
-    minStart.setMinutes(0, 0, 0);
-
-    // Round up the latest end to the next hour if needed.
     if (maxEnd.getMinutes() !== 0 || maxEnd.getSeconds() !== 0) {
       maxEnd.setHours(maxEnd.getHours() + 1, 0, 0, 0);
     }
-    return { scheduleStart: minStart, scheduleEnd: maxEnd };
+    const scheduleEnd = maxEnd;
+    
+    return { scheduleStart, scheduleEnd };
   }, [events]);
 
   const totalMinutes = differenceInMinutes(scheduleEnd, scheduleStart);
@@ -147,7 +162,9 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
     const durationMinutes = differenceInMinutes(end, start);
     const top = (minutesFromStart / totalMinutes) * containerHeight;
     const height = (durationMinutes / totalMinutes) * containerHeight;
-    return { top: `${top}px`, height: `${height}px` };
+    // If the event started before scheduleStart, do not add the extra 4px offset.
+    const adjustedTop = start < scheduleStart ? 0 : top + 4;
+    return { top: `${adjustedTop}px`, height: `${height-(adjustedTop-top) - 3}px` };
   };
 
   // ---------------------------------------------------------------------------
@@ -159,15 +176,15 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
       <div className="grid" style={{ gridTemplateColumns: "80px repeat(6, 1fr)" }}>
         {/* Time Header */}
         <div className="border-r border-gray-300">
-          <div className="h-10 border-b border-gray-300 flex items-center justify-center font-semibold bg-gray-100">
+          <div className="h-11 text-base border-b border-gray-300 flex items-center justify-center font-semibold bg-gray-100">
             Time
           </div>
         </div>
         {/* Room Headers */}
         {columns.map((col) => (
           <div key={col} className="border-r border-gray-300">
-            <div className="h-10 border-b border-gray-300 bg-gray-100 flex flex-col items-center justify-center">
-              <span className="font-semibold text-sm">{col}</span>
+            <div className="h-11 border-b border-gray-300 bg-gray-100 flex flex-col items-center justify-center">
+              <span className="font-semibold text-base">{col}</span>
               {capacitiesByColumn[col] && (
                 <span className="text-xs">
                   {capacitiesByColumn[col]!.LastCount}/{capacitiesByColumn[col]!.TotalCapacity}
@@ -184,27 +201,27 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
           {/* Time Column */}
           <div className="border-r border-gray-300">
             <div className="relative h-full">
-            {timeSlots.map((slot, index) => {
-              const slotTop =
-                (differenceInMinutes(slot, scheduleStart) / totalMinutes) * containerHeight;
-              return (
-                <div
-                  key={index}
-                  style={{
-                    top: `${slotTop}px`,
-                    position: "absolute",
-                    width: "100%",
-                    borderTop: "1px solid #e5e7eb", // Add border here
-                  }}
-                  className="text-xs text-gray-600 pl-1"
-                >
-                  {format(slot, "h:mm a")}
-                </div>
-              );
-            })}
+              {timeSlots.map((slot, index) => {
+                const slotTop =
+                  (differenceInMinutes(slot, scheduleStart) / totalMinutes) * containerHeight;
+                return (
+                  <div
+                    key={index}
+                    style={{
+                      top: `${slotTop}px`,
+                      position: "absolute",
+                      width: "100%",
+                      borderTop: "1px solid #e5e7eb",
+                    }}
+                    className="text-xs text-gray-600 pl-1"
+                  >
+                    {format(slot, "h:mm a")}
+                  </div>
+                );
+              })}
             </div>
           </div>
-          
+
           {/* Room Columns */}
           {columns.map((col) => (
             <div key={col} className="border-r border-gray-300 relative">
@@ -226,23 +243,32 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
                     ></div>
                   );
                 })}
-                {eventsByColumn[col].map((event, idx) => (
-                  <div
-                    key={idx}
-                    className="absolute left-1 right-1 bg-blue-200 border border-blue-300 rounded p-1 text-xs overflow-hidden"
-                    style={getEventStyle(event)}
-                    title={`${event.EventName} (${format(
-                      parseISO(event.EventStart),
-                      "h:mm a"
-                    )} - ${format(parseISO(event.EventEnd), "h:mm a")})`}
-                  >
-                    <div className="font-bold truncate">{event.EventName}</div>
-                    <div className="text-gray-700">
-                      {format(parseISO(event.EventStart), "h:mm a")} -{" "}
-                      {format(parseISO(event.EventEnd), "h:mm a")}
+                {eventsByColumn[col].map((event, idx) => {
+                  const eventStart = parseISO(event.EventStart);
+                  const isBeforeSchedule = eventStart < scheduleStart;
+                  const eventStyle = getEventStyle(event);
+                  // Remove rounded top corners for events that started before scheduleStart.
+                  const eventClassName = isBeforeSchedule
+                    ? "absolute left-1 right-1 bg-blue-200 border border-t-0 border-blue-300 p-1 text-xs overflow-hidden rounded-bl rounded-br"
+                    : "absolute left-1 right-1 bg-blue-200 border border-blue-300 rounded p-1 text-xs overflow-hidden";
+                  return (
+                    <div
+                      key={idx}
+                      className={eventClassName}
+                      style={eventStyle}
+                      title={`${event.EventName} (${format(
+                        parseISO(event.EventStart),
+                        "h:mm a"
+                      )} - ${format(parseISO(event.EventEnd), "h:mm a")})`}
+                    >
+                      <div className="font-bold truncate">{event.EventName}</div>
+                      <div className="text-gray-700">
+                        {format(parseISO(event.EventStart), "h:mm a")} -{" "}
+                        {format(parseISO(event.EventEnd), "h:mm a")}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           ))}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import Schedule from "./schedule/Schedule";
 
 interface Event {
@@ -104,10 +104,10 @@ export default function HomePage() {
         ];
 
         const filteredFacilities = data
-          .filter((facility: any) =>
+          .filter((facility: Capacity) =>
             targetLocations.includes(facility.LocationName)
           )
-          .map((facility: any) => ({
+          .map((facility: Capacity) => ({
             LocationName: facility.LocationName,
             LastCount: facility.LastCount,
             TotalCapacity: facility.TotalCapacity,
@@ -132,7 +132,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <header className="bg-[#C41E3A] text-white py-3">
+      <header className="bg-[#C41E3A] text-white py-2.5">
         <h1 className="text-3xl text-center font-bold">Marino Court Schedule</h1>
       </header>
   
@@ -145,8 +145,8 @@ export default function HomePage() {
       </main>
   
       {/* Footer */}
-      <footer className="bg-[#C41E3A] text-white py-3 text-center">
-        Last updated: {gymCapacity ? new Date(gymCapacity.LastUpdatedDateAndTime).toLocaleTimeString() : "N/A"}
+      <footer className="bg-[#C41E3A] text-white py-1 text-center">
+        Last updated: {gymCapacity ? new Date(gymCapacity.LastUpdatedDateAndTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "N/A"}
       </footer>
     </div>
   );
