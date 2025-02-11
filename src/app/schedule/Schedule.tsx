@@ -30,7 +30,7 @@ interface ScheduleProps {
 const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
   // Ref for measuring the grid body height (excluding headers)
   const containerRef = useRef<HTMLDivElement>(null);
-  const [containerHeight, setContainerHeight] = useState(0);
+  const [containerDimensions, setContainerDimensions] = useState({ width: 0, height: 0 });
 
   const getTextWidth = (text: string, font: string) => {
     const canvas = document.createElement('canvas');
@@ -51,15 +51,21 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
 
   // Using useLayoutEffect ensures we measure after layout is done.
   useLayoutEffect(() => {
-    const updateHeight = () => {
+    const updateDimensions = () => {
       if (containerRef.current) {
-        setContainerHeight(containerRef.current.clientHeight);
+        setContainerDimensions({
+          width: containerRef.current.clientWidth,
+          height: containerRef.current.clientHeight,
+        });
       }
     };
-    updateHeight();
-    window.addEventListener("resize", updateHeight);
-    return () => window.removeEventListener("resize", updateHeight);
+    
+    updateDimensions();
+    window.addEventListener("resize", updateDimensions);
+    
+    return () => window.removeEventListener("resize", updateDimensions);
   }, []);
+  
 
   // ---------------------------------------------------------------------------
   // 1. Room Columns & Mappings (Fixed Order)
@@ -177,8 +183,8 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
     const end = parseISO(event.EventEnd);
     const minutesFromStart = differenceInMinutes(start, scheduleStart);
     const durationMinutes = differenceInMinutes(end, start);
-    const top = (minutesFromStart / totalMinutes) * containerHeight;
-    const height = (durationMinutes / totalMinutes) * containerHeight;
+    const top = (minutesFromStart / totalMinutes) * containerDimensions.height;
+    const height = (durationMinutes / totalMinutes) * containerDimensions.height;
     // If the event started before scheduleStart, top is 0.
     const adjustedTop = start < scheduleStart ? 0 : top + 4;
     return { top: `${adjustedTop}px`, height: `${height - (adjustedTop - top) - 3}px` };
@@ -191,7 +197,7 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
   let redLineTop = 0;
   if (isCurrentTimeInSchedule && totalMinutes > 0) {
     const minutesFromStart = differenceInMinutes(currentTime, scheduleStart);
-    redLineTop = (minutesFromStart / totalMinutes) * containerHeight;
+    redLineTop = (minutesFromStart / totalMinutes) * containerDimensions.height;
   }
 
   // Define the circle's diameter (adjust as needed)
@@ -199,8 +205,8 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
 
   // 80px is the Time column, so subtract that from total width.
   // This is a rough measure for each room column:
-  const approximateColumnWidth = containerRef.current
-    ? (containerRef.current.clientWidth - 79) / columns.length - 1
+  const approximateColumnWidth = containerDimensions.width
+    ? (containerDimensions.width - 79) / columns.length - 1
     : 0; 
   // ---------------------------------------------------------------------------
   // 5. Render Layout with Header and Separate Grid Body
@@ -267,7 +273,7 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
             <div className="relative h-full">
               {timeSlots.map((slot, index) => {
                 const slotTop =
-                  (differenceInMinutes(slot, scheduleStart) / totalMinutes) * containerHeight;
+                  (differenceInMinutes(slot, scheduleStart) / totalMinutes) * containerDimensions.height;
                 return (
                   <div
                     key={index}
@@ -293,7 +299,7 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
                 {timeSlots.map((slot, index) => {
                   const slotTop =
                     (differenceInMinutes(slot, scheduleStart) / totalMinutes) *
-                    containerHeight;
+                    containerDimensions.height;
                   return (
                     <div
                       key={index}
@@ -334,40 +340,40 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
                         "h:mm a"
                       )} - ${format(eventEnd, "h:mm a")})`}
                     >
-                            {isTooShort ? (
-        // CASE A: Event box is short (< 36px tall)
-        isNarrow ? (
-          // A1: Also narrow
-          canFitShortTime ? (
-            // A1a: We can fit only the start time inline
-            <div className="font-bold truncate">
-              {event.EventName}
-              <span className="text-gray-700 absolute font-normal right-1.5">
-                {format(eventStart, "h:mm a")}
-              </span>
-            </div>
-          ) : (
-            // A1b: Can't even fit the start time => just the event name
-            <div className="font-bold truncate">{event.EventName}</div>
-          )
-        ) : (
-          // A2: Short + wide => inline full "start - end"
-          <div className="font-bold truncate">
-            {event.EventName}
-            <span className="text-gray-700 absolute font-normal right-1.5">
-              {format(eventStart, "h:mm a")} - {format(eventEnd, "h:mm a")}
-            </span>
-          </div>
-        )
-      ) : (
-        // CASE B: Event box is not short => always two lines
-        <>
-          <div className="font-bold truncate">{event.EventName}</div>
-          <div className="text-gray-700">
-            {format(eventStart, "h:mm a")} - {format(eventEnd, "h:mm a")}
-          </div>
-        </>
-      )}
+                    {isTooShort ? (
+                      // CASE A: Event box is short (< 36px tall)
+                      isNarrow ? (
+                        // A1: Also narrow
+                        canFitShortTime ? (
+                          // A1a: We can fit only the start time inline
+                          <div className="font-bold truncate">
+                            {event.EventName}
+                            <span className="text-gray-700 absolute font-normal right-1.5">
+                              {format(eventStart, "h:mm a")}
+                            </span>
+                          </div>
+                        ) : (
+                          // A1b: Can't even fit the start time => just the event name
+                          <div className="font-bold truncate">{event.EventName}</div>
+                        )
+                      ) : (
+                        // A2: Short + wide => inline full "start - end"
+                        <div className="font-bold truncate">
+                          {event.EventName}
+                          <span className="text-gray-700 absolute font-normal right-1.5">
+                            {format(eventStart, "h:mm a")} - {format(eventEnd, "h:mm a")}
+                          </span>
+                        </div>
+                      )
+                    ) : (
+                      // CASE B: Event box is not short => always two lines
+                      <>
+                        <div className="font-bold truncate">{event.EventName}</div>
+                        <div className="text-gray-700">
+                          {format(eventStart, "h:mm a")} - {format(eventEnd, "h:mm a")}
+                        </div>
+                      </>
+                    )}
                     </div>
                   );
                 })}
