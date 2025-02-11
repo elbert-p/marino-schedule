@@ -239,7 +239,7 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
               style={{
                 position: "absolute",
                 top: `${redLineTop}px`,
-                left: "79px", // bordering on time column
+                left: "78px", // bordering on time column
                 right: 0,
                 borderTop: "3px solid rgba(255, 0, 0, 0.8)",
                 zIndex: 50,
@@ -250,7 +250,7 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
               style={{
                 position: "absolute",
                 top: `${1.39 + redLineTop - circleDiameter / 2}px`,
-                left: `${(80 - circleDiameter / 2) - 8 }px`,
+                left: `${(79 - circleDiameter / 2) - 8 }px`,
                 width: `${circleDiameter}px`,
                 height: `${circleDiameter}px`,
                 backgroundColor: "rgba(255, 0, 0, 0.8)",
@@ -314,11 +314,13 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
                   const eventStyle = getEventStyle(event);
                   const isTooShort = parseFloat(eventStyle.height ?? "0") < 36;
                   const timeTextWidth = 109; // Pre-calculated max width for time text
+                  const shortTimeTextWidth = 54; // width for just "h:mm a"
                   const eventNameWidth = getTextWidth(event.EventName, 'bold 12px sans-serif');
                   if(event.EventName == "Group Fitness"){
                     console.log("Group Fitness " + eventNameWidth)
                   }
-                  const isNarrow = (eventNameWidth + timeTextWidth) > approximateColumnWidth - 8 -2 -8 -8;   // < 200px => no date, 8 for padding
+                  const isNarrow = (eventNameWidth + timeTextWidth) > approximateColumnWidth - 8 - 2 - 8 - 8;
+                  const canFitShortTime = (eventNameWidth + shortTimeTextWidth) <= approximateColumnWidth - 8 - 2 - 8 - 8;
                   const eventClassName = isBeforeSchedule
                     ? "absolute left-1 right-1 bg-blue-200 border border-t-0 border-blue-300 p-1 text-xs overflow-hidden rounded-bl rounded-br"
                     : "absolute left-1 right-1 bg-blue-200 border border-blue-300 rounded p-1 text-xs overflow-hidden";
@@ -332,42 +334,40 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
                         "h:mm a"
                       )} - ${format(eventEnd, "h:mm a")})`}
                     >
-                      {isNarrow ? (
-                        isTooShort ? (
-                          // 1) Narrow + short => only event name
-                          <div className="font-bold truncate">
-                            {event.EventName}
-                          </div>
-                        ) : (
-                          // 2) Narrow + not short => normal two lines
-                          <>
-                            <div className="font-bold truncate">
-                              {event.EventName}
-                            </div>
-                            <div className="text-gray-700">
-                              {format(eventStart, "h:mm a")} - {format(eventEnd, "h:mm a")}
-                            </div>
-                          </>
-                        )
-                      ) : isTooShort ? (
-                        // 3) Wide + short => inline date
-                        <div className="font-bold truncate">
-                          {event.EventName}
-                          <span className="text-gray-700 absolute font-normal right-1.5">
-                            {format(eventStart, "h:mm a")} - {format(eventEnd, "h:mm a")}
-                          </span>
-                        </div>
-                      ) : (
-                        // 4) Wide + not short => two lines
-                        <>
-                          <div className="font-bold truncate">
-                            {event.EventName}
-                          </div>
-                          <div className="text-gray-700">
-                            {format(eventStart, "h:mm a")} - {format(eventEnd, "h:mm a")}
-                          </div>
-                        </>
-                      )}
+                            {isTooShort ? (
+        // CASE A: Event box is short (< 36px tall)
+        isNarrow ? (
+          // A1: Also narrow
+          canFitShortTime ? (
+            // A1a: We can fit only the start time inline
+            <div className="font-bold truncate">
+              {event.EventName}
+              <span className="text-gray-700 absolute font-normal right-1.5">
+                {format(eventStart, "h:mm a")}
+              </span>
+            </div>
+          ) : (
+            // A1b: Can't even fit the start time => just the event name
+            <div className="font-bold truncate">{event.EventName}</div>
+          )
+        ) : (
+          // A2: Short + wide => inline full "start - end"
+          <div className="font-bold truncate">
+            {event.EventName}
+            <span className="text-gray-700 absolute font-normal right-1.5">
+              {format(eventStart, "h:mm a")} - {format(eventEnd, "h:mm a")}
+            </span>
+          </div>
+        )
+      ) : (
+        // CASE B: Event box is not short => always two lines
+        <>
+          <div className="font-bold truncate">{event.EventName}</div>
+          <div className="text-gray-700">
+            {format(eventStart, "h:mm a")} - {format(eventEnd, "h:mm a")}
+          </div>
+        </>
+      )}
                     </div>
                   );
                 })}
