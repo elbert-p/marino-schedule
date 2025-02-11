@@ -186,8 +186,9 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
     const top = (minutesFromStart / totalMinutes) * containerDimensions.height;
     const height = (durationMinutes / totalMinutes) * containerDimensions.height;
     // If the event started before scheduleStart, top is 0.
-    const adjustedTop = start < scheduleStart ? 0 : top + 4;
-    return { top: `${adjustedTop}px`, height: `${height - (adjustedTop - top) - 3}px` };
+    const topBuffer = 3
+    const adjustedTop = start < scheduleStart ? 0 : top + topBuffer;
+    return { top: `${adjustedTop}px`, height: `${height - (adjustedTop - top) - (topBuffer-1)}px` };
   };
 
   // ---------------------------------------------------------------------------
@@ -325,11 +326,11 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
                   if(event.EventName == "Group Fitness"){
                     console.log("Group Fitness " + eventNameWidth)
                   }
-                  const isNarrow = (eventNameWidth + timeTextWidth) > approximateColumnWidth - 8 - 2 - 8 - 8;
-                  const canFitShortTime = (eventNameWidth + shortTimeTextWidth) <= approximateColumnWidth - 8 - 2 - 8 - 8;
+                  const isNarrow = (eventNameWidth + timeTextWidth) > approximateColumnWidth - 3*2 - 2 - 8 - 8;
+                  const canFitShortTime = (eventNameWidth + shortTimeTextWidth) <= approximateColumnWidth - 3*2 - 2 - 8 - 8;
                   const eventClassName = isBeforeSchedule
-                    ? "absolute left-1 right-1 bg-blue-200 border border-t-0 border-blue-300 p-1 text-xs overflow-hidden rounded-bl rounded-br"
-                    : "absolute left-1 right-1 bg-blue-200 border border-blue-300 rounded p-1 text-xs overflow-hidden";
+                    ? "absolute left-[3.25px] right-[3.25px] bg-blue-200 border border-t-0 border-blue-300 p-1 text-xs overflow-hidden rounded-bl rounded-br"
+                    : "absolute left-[3.25px] right-[3.25px] bg-blue-200 border border-blue-300 rounded p-1 text-xs overflow-hidden";
                   return (
                     <div
                       key={idx}
