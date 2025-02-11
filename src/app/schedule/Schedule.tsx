@@ -187,7 +187,7 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
   }
 
   // Define the circle's diameter (adjust as needed)
-  const circleDiameter = 10; // in pixels
+  const circleDiameter = 15; // in pixels
 
   // ---------------------------------------------------------------------------
   // 5. Render Layout with Header and Separate Grid Body
@@ -226,9 +226,9 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
               style={{
                 position: "absolute",
                 top: `${redLineTop}px`,
-                left: "80px", // Start after the time column
+                left: "79px", // Start after the time column
                 right: 0,
-                borderTop: "2px solid rgba(255, 0, 0, 0.3)",
+                borderTop: "3px solid rgba(255, 0, 0, 0.8)",
                 zIndex: 50,
               }}
             />
@@ -236,13 +236,13 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
             <div
               style={{
                 position: "absolute",
-                top: `${1 + redLineTop - circleDiameter / 2}px`,
-                left: `${(80 - circleDiameter / 2) - 4.5 }px`,
+                top: `${1.35 + redLineTop - circleDiameter / 2}px`,
+                left: `${(80 - circleDiameter / 2) - 8 }px`,
                 width: `${circleDiameter}px`,
                 height: `${circleDiameter}px`,
-                backgroundColor: "rgba(255, 0, 0, 0.3)",
+                backgroundColor: "rgba(255, 0, 0, 0.8)",
                 borderRadius: "50%",
-                zIndex: 60,
+                zIndex: 50,
               }}
             />
           </>
