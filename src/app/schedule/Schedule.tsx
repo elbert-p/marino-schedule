@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useLayoutEffect, useRef, useState, useMemo } from "react";
+import React, { useLayoutEffect, useRef, useState, useMemo, useEffect } from "react";
 import {
   format,
   parseISO,
@@ -31,6 +31,15 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
   // Ref for measuring the grid body height (excluding headers)
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerHeight, setContainerHeight] = useState(0);
+
+  // Current time state for red line (updates every minute)
+  const [currentTime, setCurrentTime] = useState(new Date());
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // update every minute (adjust as needed)
+    return () => clearInterval(intervalId);
+  }, []);
 
   // Using useLayoutEffect ensures we measure after layout is done.
   useLayoutEffect(() => {
@@ -75,7 +84,7 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
       }
     });
     return grouping;
-  }, [events, columns, eventRoomToColumn]);
+  }, [events]);
 
   // ---------------------------------------------------------------------------
   // 2. Capacities Assignment
@@ -99,7 +108,7 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
       }
     });
     return grouping;
-  }, [capacities, columns]);
+  }, [capacities]);
 
   // ---------------------------------------------------------------------------
   // 3. Dynamic Timeline & Hourly Time Slots
@@ -164,11 +173,24 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
     const height = (durationMinutes / totalMinutes) * containerHeight;
     // If the event started before scheduleStart, do not add the extra 4px offset.
     const adjustedTop = start < scheduleStart ? 0 : top + 4;
-    return { top: `${adjustedTop}px`, height: `${height-(adjustedTop-top) - 3}px` };
+    return { top: `${adjustedTop}px`, height: `${height - (adjustedTop - top) - 3}px` };
   };
 
   // ---------------------------------------------------------------------------
-  // 4. Render Layout with header and separate grid body
+  // 4. Compute the Red "Current Time" Line Position and Circle
+  // ---------------------------------------------------------------------------
+  const isCurrentTimeInSchedule = currentTime >= scheduleStart && currentTime <= scheduleEnd;
+  let redLineTop = 0;
+  if (isCurrentTimeInSchedule && totalMinutes > 0) {
+    const minutesFromStart = differenceInMinutes(currentTime, scheduleStart);
+    redLineTop = (minutesFromStart / totalMinutes) * containerHeight;
+  }
+
+  // Define the circle's diameter (adjust as needed)
+  const circleDiameter = 10; // in pixels
+
+  // ---------------------------------------------------------------------------
+  // 5. Render Layout with Header and Separate Grid Body
   // ---------------------------------------------------------------------------
   return (
     <main className="absolute inset-0 flex flex-col">
@@ -197,6 +219,35 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
 
       {/* Grid Body */}
       <div ref={containerRef} className="relative flex-1 overflow-hidden">
+        {isCurrentTimeInSchedule && (
+          <>
+            {/* Red line across the schedule starting after the time column */}
+            <div
+              style={{
+                position: "absolute",
+                top: `${redLineTop}px`,
+                left: "80px", // Start after the time column
+                right: 0,
+                borderTop: "2px solid rgba(255, 0, 0, 0.3)",
+                zIndex: 50,
+              }}
+            />
+            {/* Circle at the border of the time column */}
+            <div
+              style={{
+                position: "absolute",
+                top: `${1 + redLineTop - circleDiameter / 2}px`,
+                left: `${(80 - circleDiameter / 2) - 4.5 }px`,
+                width: `${circleDiameter}px`,
+                height: `${circleDiameter}px`,
+                backgroundColor: "rgba(255, 0, 0, 0.3)",
+                borderRadius: "50%",
+                zIndex: 60,
+              }}
+            />
+          </>
+        )}
+
         <div className="grid h-full" style={{ gridTemplateColumns: "80px repeat(6, 1fr)" }}>
           {/* Time Column */}
           <div className="border-r border-gray-300">
@@ -247,7 +298,6 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
                   const eventStart = parseISO(event.EventStart);
                   const isBeforeSchedule = eventStart < scheduleStart;
                   const eventStyle = getEventStyle(event);
-                  // Remove rounded top corners for events that started before scheduleStart.
                   const eventClassName = isBeforeSchedule
                     ? "absolute left-1 right-1 bg-blue-200 border border-t-0 border-blue-300 p-1 text-xs overflow-hidden rounded-bl rounded-br"
                     : "absolute left-1 right-1 bg-blue-200 border border-blue-300 rounded p-1 text-xs overflow-hidden";
