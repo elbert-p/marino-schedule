@@ -28,10 +28,14 @@ export default function HomePage() {
 
   // Fetch schedule events.
   useEffect(() => {
-    const todayStr = new Date().toISOString().split("T")[0];
-    const [year, month, day] = todayStr.split("-");
-    const today = `${year}-${month}-${Number(day)} 00:00:00`;
-
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0"); // Months are 0-based
+    const day = String(now.getDate()).padStart(2, "0"); // Get local day
+    const today = `${year}-${month}-${day} 00:00:00`;
+    
+    console.log(today);
     const payload = {
       date: today,
       data: {
