@@ -32,6 +32,14 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerHeight, setContainerHeight] = useState(0);
 
+  const getTextWidth = (text: string, font: string) => {
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    if (!context) return 0;
+    context.font = font;
+    return context.measureText(text).width;
+  };
+
   // Current time state for red line (updates every minute)
   const [currentTime, setCurrentTime] = useState(new Date());
   useEffect(() => {
@@ -130,8 +138,8 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
     if (nonOpenEvents.length > 0) {
       const eventStarts = nonOpenEvents.map((event) => parseISO(event.EventStart));
       earliestEventStart = new Date(Math.min(...eventStarts.map((d) => d.getTime())));
-      // Subtract 1 hour from the earliest non–"Open Basketball" event start time.
-      earliestEventStart = addMinutes(earliestEventStart, -60);
+      // Buffer for earliest start time (e.g., at least 30 mins before the first event).
+      earliestEventStart = addMinutes(earliestEventStart, -30);
     } else {
       // Fallback: if all events are "Open Basketball", use the earliest event start.
       const eventStarts = events.map((event) => parseISO(event.EventStart));
@@ -171,7 +179,7 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
     const durationMinutes = differenceInMinutes(end, start);
     const top = (minutesFromStart / totalMinutes) * containerHeight;
     const height = (durationMinutes / totalMinutes) * containerHeight;
-    // If the event started before scheduleStart, do not add the extra 4px offset.
+    // If the event started before scheduleStart, top is 0.
     const adjustedTop = start < scheduleStart ? 0 : top + 4;
     return { top: `${adjustedTop}px`, height: `${height - (adjustedTop - top) - 3}px` };
   };
@@ -189,6 +197,11 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
   // Define the circle's diameter (adjust as needed)
   const circleDiameter = 15; // in pixels
 
+  // 80px is the Time column, so subtract that from total width.
+  // This is a rough measure for each room column:
+  const approximateColumnWidth = containerRef.current
+    ? (containerRef.current.clientWidth - 79) / columns.length - 1
+    : 0; 
   // ---------------------------------------------------------------------------
   // 5. Render Layout with Header and Separate Grid Body
   // ---------------------------------------------------------------------------
@@ -226,7 +239,7 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
               style={{
                 position: "absolute",
                 top: `${redLineTop}px`,
-                left: "79px", // Start after the time column
+                left: "79px", // bordering on time column
                 right: 0,
                 borderTop: "3px solid rgba(255, 0, 0, 0.8)",
                 zIndex: 50,
@@ -236,7 +249,7 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
             <div
               style={{
                 position: "absolute",
-                top: `${1.35 + redLineTop - circleDiameter / 2}px`,
+                top: `${1.39 + redLineTop - circleDiameter / 2}px`,
                 left: `${(80 - circleDiameter / 2) - 8 }px`,
                 width: `${circleDiameter}px`,
                 height: `${circleDiameter}px`,
@@ -296,8 +309,16 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
                 })}
                 {eventsByColumn[col].map((event, idx) => {
                   const eventStart = parseISO(event.EventStart);
+                  const eventEnd = parseISO(event.EventEnd);
                   const isBeforeSchedule = eventStart < scheduleStart;
                   const eventStyle = getEventStyle(event);
+                  const isTooShort = parseFloat(eventStyle.height ?? "0") < 36;
+                  const timeTextWidth = 109; // Pre-calculated max width for time text
+                  const eventNameWidth = getTextWidth(event.EventName, 'bold 12px sans-serif');
+                  if(event.EventName == "Group Fitness"){
+                    console.log("Group Fitness " + eventNameWidth)
+                  }
+                  const isNarrow = (eventNameWidth + timeTextWidth) > approximateColumnWidth - 8 -2 -8 -8;   // < 200px => no date, 8 for padding
                   const eventClassName = isBeforeSchedule
                     ? "absolute left-1 right-1 bg-blue-200 border border-t-0 border-blue-300 p-1 text-xs overflow-hidden rounded-bl rounded-br"
                     : "absolute left-1 right-1 bg-blue-200 border border-blue-300 rounded p-1 text-xs overflow-hidden";
@@ -307,15 +328,46 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
                       className={eventClassName}
                       style={eventStyle}
                       title={`${event.EventName} (${format(
-                        parseISO(event.EventStart),
+                        eventStart,
                         "h:mm a"
-                      )} - ${format(parseISO(event.EventEnd), "h:mm a")})`}
+                      )} - ${format(eventEnd, "h:mm a")})`}
                     >
-                      <div className="font-bold truncate">{event.EventName}</div>
-                      <div className="text-gray-700">
-                        {format(parseISO(event.EventStart), "h:mm a")} -{" "}
-                        {format(parseISO(event.EventEnd), "h:mm a")}
-                      </div>
+                      {isNarrow ? (
+                        isTooShort ? (
+                          // 1) Narrow + short => only event name
+                          <div className="font-bold truncate">
+                            {event.EventName}
+                          </div>
+                        ) : (
+                          // 2) Narrow + not short => normal two lines
+                          <>
+                            <div className="font-bold truncate">
+                              {event.EventName}
+                            </div>
+                            <div className="text-gray-700">
+                              {format(eventStart, "h:mm a")} - {format(eventEnd, "h:mm a")}
+                            </div>
+                          </>
+                        )
+                      ) : isTooShort ? (
+                        // 3) Wide + short => inline date
+                        <div className="font-bold truncate">
+                          {event.EventName}
+                          <span className="text-gray-700 absolute font-normal right-1.5">
+                            {format(eventStart, "h:mm a")} - {format(eventEnd, "h:mm a")}
+                          </span>
+                        </div>
+                      ) : (
+                        // 4) Wide + not short => two lines
+                        <>
+                          <div className="font-bold truncate">
+                            {event.EventName}
+                          </div>
+                          <div className="text-gray-700">
+                            {format(eventStart, "h:mm a")} - {format(eventEnd, "h:mm a")}
+                          </div>
+                        </>
+                      )}
                     </div>
                   );
                 })}

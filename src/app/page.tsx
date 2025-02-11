@@ -29,12 +29,10 @@ export default function HomePage() {
   // Fetch schedule events.
   useEffect(() => {
     const now = new Date();
-    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, "0"); // Months are 0-based
-    const day = String(now.getDate()).padStart(2, "0"); // Get local day
-    const today = `${year}-${month}-${day} 00:00:00`;
-    
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;    
+    const [year, month, day] = todayStr.split("-");
+    const today = `${year}-${month}-${Number(day)} 00:00:00`;
+
     console.log(today);
     const payload = {
       date: today,
@@ -48,7 +46,7 @@ export default function HomePage() {
         ZeroDisplayOnWeb: 1,
         HeaderUrl: "",
         Title: "Scheduled Recreational Activities",
-        Format: 0,
+        Format: 1,
         Rollup: 0,
         PageSize: 50,
         DropEventsInPast: true,
@@ -68,7 +66,8 @@ export default function HomePage() {
       })
       .then((rawData) => {
         const parsed = JSON.parse(rawData.d);
-        const dailyResults = parsed.DailyBookingResults ?? [];
+        console.log(parsed)
+        const dailyResults = parsed.MonthlyBookingResults ?? [];
         const filtered = (dailyResults as Event[])
           .filter((booking: Event) => booking.EventStart.split("T")[0] === todayStr)
           .map((booking: Event) => ({
@@ -77,7 +76,6 @@ export default function HomePage() {
             EventName: booking.EventName,
             Room: booking.Room,
           }));
-
         setEventResults(filtered);
         console.log("Events:", filtered);
         setLoading(false);
@@ -132,12 +130,13 @@ export default function HomePage() {
       </div>
     );
   }
-
+  const now = new Date();
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
       <header className="bg-[#C41E3A] text-white py-2.5">
-        <h1 className="text-3xl text-center font-bold">Marino Court Schedule</h1>
+        <h1 className="text-3xl text-center font-bold">Marino Court Schedule
+      </h1>
       </header>
   
       {/* Schedule area */}
@@ -151,7 +150,7 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="bg-[#C41E3A] text-white py-1 text-center">
       {gymCapacity?.LastUpdatedDateAndTime && (
-        <>Last updated: {new Date(gymCapacity.LastUpdatedDateAndTime).toLocaleTimeString([], {timeStyle: 'short'})}</>
+        <>{now.toLocaleDateString([], {dateStyle: 'short'})} - Last updated: {new Date(gymCapacity.LastUpdatedDateAndTime).toLocaleTimeString([], {timeStyle: 'short'})}</>
       )}
       </footer>
     </div>
