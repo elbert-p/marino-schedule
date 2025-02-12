@@ -82,7 +82,6 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
   const columns = useMemo(() => {
     return (containerDimensions.width < 640 && containerDimensions.width !== 0) ? allColumns.slice(0, 3) : allColumns;
   }, [containerDimensions.width, allColumns]);
-  console.log(columns, containerDimensions.width);
 
   const eventRoomToColumn: Record<string, string> = {
     "BB Court #1": "Court #1",
@@ -91,6 +90,46 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
     "Studio A - wood floor": "Studio A",
     "Studio B - wood floor": "Studio B",
     "Studio C - Revolutionz": "Studio C",
+  };
+
+  const eventColorMap = [
+    { 
+      patterns: ['Open Basketball'],
+      color: 'bg-blue-200',
+      borderColor: 'border-blue-300' 
+    },
+    { 
+      patterns: ['Open'],
+      color: 'bg-green-200',
+      borderColor: 'border-green-300'
+    },
+    { 
+      patterns: ['Group Fitness'],
+      color: 'bg-sky-200',
+      borderColor: 'border-sky-300'
+    },
+    // { 
+    //   patterns: ['Intramural'],
+    //   color: 'bg-orange-200',
+    //   borderColor: 'border-orange-300'
+    // },
+    { 
+      patterns: ['Club', 'Varsity', 'Intramural'],
+      color: 'bg-red-200',
+      borderColor: 'border-red-300'
+    },
+  ];
+  const defaultColor = {color: 'bg-cyan-200', borderColor: 'border-cyan-300'};
+
+  // Helper function to find matching color
+  const getEventColor = (eventName: String) => {
+    const match = eventColorMap.find(({ patterns }) => 
+      patterns.some(pattern => eventName.includes(pattern))
+    );
+    return match ? { 
+      color: match.color,
+      borderColor: match.borderColor
+    } : defaultColor;
   };
 
   const eventsByColumn = useMemo(() => {
@@ -190,10 +229,10 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
     const durationMinutes = differenceInMinutes(end, start);
     const top = (minutesFromStart / totalMinutes) * containerDimensions.height;
     const height = (durationMinutes / totalMinutes) * containerDimensions.height;
-    // If the event started before scheduleStart, top is 0.
     const topBuffer = 3
-    const adjustedTop = start < scheduleStart ? 0 : top + topBuffer;
-    return { top: `${adjustedTop}px`, height: `${height - (adjustedTop - top) - (topBuffer-1)}px` };
+    const adjustedTop = start < scheduleStart ? 0 : top + topBuffer; // If the event started before scheduleStart, top is 0.
+    return { top: `${adjustedTop}px`, height: `${height - (adjustedTop - top) - (topBuffer-1)}px`, 
+    };
   };
 
   // ---------------------------------------------------------------------------
@@ -233,7 +272,7 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
             <div className="h-11 border-b border-gray-300 bg-gray-100 flex flex-col items-center justify-center">
               <span className="font-semibold text-base">{col}</span>
               {capacitiesByColumn[col] && (
-                <span className="text-[.75rem]">
+                <span className="text-xs">
                   {capacitiesByColumn[col]!.LastCount}/{capacitiesByColumn[col]!.TotalCapacity}
                 </span>
               )}
@@ -322,17 +361,17 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
                 {eventsByColumn[col].map((event, idx) => {
                   const eventStart = parseISO(event.EventStart);
                   const eventEnd = parseISO(event.EventEnd);
-                  const isBeforeSchedule = eventStart < scheduleStart;
                   const eventStyle = getEventStyle(event);
                   const isTooShort = parseFloat(eventStyle.height ?? "0") < 36;
                   const timeTextWidth = 109; // Pre-calculated max width for time text
                   const shortTimeTextWidth = 54; // width for just "h:mm a"
                   const eventNameWidth = getTextWidth(event.EventName, 'bold 12px sans-serif');
-                  const isNarrow = (eventNameWidth + timeTextWidth) > approximateColumnWidth - 3*2 - 2 - 8 - 8;
-                  const canFitShortTime = (eventNameWidth + shortTimeTextWidth) <= approximateColumnWidth - 3*2 - 2 - 8 - 8;
-                  const eventClassName = isBeforeSchedule
-                    ? "absolute left-[3px] right-[3px] bg-blue-200 border border-t-0 border-blue-300 p-1 text-xs overflow-hidden rounded-bl rounded-br"
-                    : "absolute left-[3px] right-[3px] bg-blue-200 border border-blue-300 rounded p-1 text-xs overflow-hidden";
+                  const isNarrow = (eventNameWidth + timeTextWidth) > approximateColumnWidth - 3*2 - 2 - 4*2 - 8;
+                  const canFitShortTime = (eventNameWidth + shortTimeTextWidth) <= approximateColumnWidth - 3*2 - 2 - 4*2 - 8;
+                  const { color: bgColor, borderColor } = getEventColor(event.EventName);
+                  const eventClassName = eventStart < scheduleStart //event started before scheduleStart, cut off look
+                    ? `absolute left-[3px] right-[3px] ${bgColor} border border-t-0 ${borderColor} p-1 text-xs overflow-hidden rounded-bl rounded-br`
+                    : `absolute left-[3px] right-[3px] ${bgColor} border ${borderColor} rounded p-1 text-xs overflow-hidden`;
                   return (
                     <div
                       key={idx}
