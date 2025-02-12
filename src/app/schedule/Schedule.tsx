@@ -329,8 +329,8 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
                   const isNarrow = (eventNameWidth + timeTextWidth) > approximateColumnWidth - 3*2 - 2 - 8 - 8;
                   const canFitShortTime = (eventNameWidth + shortTimeTextWidth) <= approximateColumnWidth - 3*2 - 2 - 8 - 8;
                   const eventClassName = isBeforeSchedule
-                    ? "absolute left-[3.25px] right-[3.25px] bg-blue-200 border border-t-0 border-blue-300 p-1 text-xs overflow-hidden rounded-bl rounded-br"
-                    : "absolute left-[3.25px] right-[3.25px] bg-blue-200 border border-blue-300 rounded p-1 text-xs overflow-hidden";
+                    ? "absolute left-[3px] right-[3px] bg-blue-200 border border-t-0 border-blue-300 p-1 text-xs overflow-hidden rounded-bl rounded-br"
+                    : "absolute left-[3px] right-[3px] bg-blue-200 border border-blue-300 rounded p-1 text-xs overflow-hidden";
                   return (
                     <div
                       key={idx}
