@@ -70,7 +70,7 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
   // ---------------------------------------------------------------------------
   // 1. Room Columns & Mappings (Fixed Order)
   // ---------------------------------------------------------------------------
-  const columns = [
+  const allColumns = [
     "Court #1",
     "Court #2",
     "Court #3",
@@ -78,6 +78,11 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
     "Studio B",
     "Studio C",
   ];
+  
+  const columns = useMemo(() => {
+    return (containerDimensions.width < 640 && containerDimensions.width !== 0) ? allColumns.slice(0, 3) : allColumns;
+  }, [containerDimensions.width, allColumns]);
+  console.log(columns, containerDimensions.width);
 
   const eventRoomToColumn: Record<string, string> = {
     "BB Court #1": "Court #1",
@@ -137,12 +142,12 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
     }
     
     // Filter out "Open Basketball" events.
-    const nonOpenEvents = events.filter(
+    const nonOpenBBEvents = events.filter(
       (event) => event.EventName !== "Open Basketball"
     );
     let earliestEventStart: Date;
-    if (nonOpenEvents.length > 0) {
-      const eventStarts = nonOpenEvents.map((event) => parseISO(event.EventStart));
+    if (nonOpenBBEvents.length > 0) {
+      const eventStarts = nonOpenBBEvents.map((event) => parseISO(event.EventStart));
       earliestEventStart = new Date(Math.min(...eventStarts.map((d) => d.getTime())));
       // Buffer for earliest start time (e.g., at least 30 mins before the first event).
       earliestEventStart = addMinutes(earliestEventStart, -30);
@@ -215,7 +220,7 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
   return (
     <main className="absolute inset-0 flex flex-col">
       {/* Header Row */}
-      <div className="grid" style={{ gridTemplateColumns: "80px repeat(6, 1fr)" }}>
+      <div className="grid" style={{ gridTemplateColumns: `80px repeat(${columns.length}, 1fr)` }}>
         {/* Time Header */}
         <div className="border-r border-gray-300">
           <div className="h-11 text-base border-b border-gray-300 flex items-center justify-center font-semibold bg-gray-100">
@@ -228,7 +233,7 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
             <div className="h-11 border-b border-gray-300 bg-gray-100 flex flex-col items-center justify-center">
               <span className="font-semibold text-base">{col}</span>
               {capacitiesByColumn[col] && (
-                <span className="text-xs">
+                <span className="text-[.75rem]">
                   {capacitiesByColumn[col]!.LastCount}/{capacitiesByColumn[col]!.TotalCapacity}
                 </span>
               )}
@@ -268,7 +273,7 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
           </>
         )}
 
-        <div className="grid h-full" style={{ gridTemplateColumns: "80px repeat(6, 1fr)" }}>
+        <div className="grid h-full" style={{ gridTemplateColumns: `80px repeat(${columns.length}, 1fr)` }}>
           {/* Time Column */}
           <div className="border-r border-gray-300">
             <div className="relative h-full">
@@ -323,9 +328,6 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
                   const timeTextWidth = 109; // Pre-calculated max width for time text
                   const shortTimeTextWidth = 54; // width for just "h:mm a"
                   const eventNameWidth = getTextWidth(event.EventName, 'bold 12px sans-serif');
-                  if(event.EventName == "Group Fitness"){
-                    console.log("Group Fitness " + eventNameWidth)
-                  }
                   const isNarrow = (eventNameWidth + timeTextWidth) > approximateColumnWidth - 3*2 - 2 - 8 - 8;
                   const canFitShortTime = (eventNameWidth + shortTimeTextWidth) <= approximateColumnWidth - 3*2 - 2 - 8 - 8;
                   const eventClassName = isBeforeSchedule
