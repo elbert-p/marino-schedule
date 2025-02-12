@@ -70,14 +70,10 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
   // ---------------------------------------------------------------------------
   // 1. Room Columns & Mappings (Fixed Order)
   // ---------------------------------------------------------------------------
-  const allColumns = [
-    "Court #1",
-    "Court #2",
-    "Court #3",
-    "Studio A",
-    "Studio B",
-    "Studio C",
-  ];
+  const allColumns = useMemo(() => [
+    "Court #1", "Court #2", "Court #3", 
+    "Studio A", "Studio B", "Studio C"
+  ], []);
   
   const columns = useMemo(() => {
     return (containerDimensions.width < 640 && containerDimensions.width !== 0) ? allColumns.slice(0, 3) : allColumns;
@@ -122,7 +118,7 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
   const defaultColor = {color: 'bg-cyan-200', borderColor: 'border-cyan-300'};
 
   // Helper function to find matching color
-  const getEventColor = (eventName: String) => {
+  const getEventColor = (eventName: string) => {
     const match = eventColorMap.find(({ patterns }) => 
       patterns.some(pattern => eventName.includes(pattern))
     );
