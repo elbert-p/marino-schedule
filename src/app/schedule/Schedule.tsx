@@ -66,6 +66,9 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
     return () => window.removeEventListener("resize", updateDimensions);
   }, []);
   
+  const timeColumnWidth = containerDimensions.width < 640 ? 42 : 70;
+  const timeColumnFormat = containerDimensions.width < 640 ? "h a" : "h:mm a";
+
 
   // ---------------------------------------------------------------------------
   // 1. Room Columns & Mappings (Fixed Order)
@@ -244,10 +247,9 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
   // Define the circle's diameter (adjust as needed)
   const circleDiameter = 15; // in pixels
 
-  // 80px is the Time column, so subtract that from total width.
   // This is a rough measure for each room column:
   const approximateColumnWidth = containerDimensions.width
-    ? (containerDimensions.width - 79) / columns.length - 1
+    ? (containerDimensions.width - (timeColumnWidth-1)) / columns.length - 1 // 79 = time width - 1
     : 0; 
   // ---------------------------------------------------------------------------
   // 5. Render Layout with Header and Separate Grid Body
@@ -255,10 +257,10 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
   return (
     <main className="absolute inset-0 flex flex-col">
       {/* Header Row */}
-      <div className="grid" style={{ gridTemplateColumns: `80px repeat(${columns.length}, 1fr)` }}>
+      <div className="grid" style={{ gridTemplateColumns: `${timeColumnWidth}px repeat(${columns.length}, 1fr)` }}>
         {/* Time Header */}
         <div className="border-r border-gray-300">
-          <div className="h-11 text-base border-b border-gray-300 flex items-center justify-center font-semibold bg-gray-100">
+          <div className="h-11 border-b border-gray-300 flex items-center justify-center font-semibold bg-gray-100 text-sm">
             Time
           </div>
         </div>
@@ -286,7 +288,7 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
               style={{
                 position: "absolute",
                 top: `${redLineTop}px`,
-                left: "78px", // bordering on time column
+                left: `${timeColumnWidth-2 + circleDiameter / 2}px`,
                 right: 0,
                 borderTop: "3px solid rgba(255, 0, 0, 0.8)",
                 zIndex: 50,
@@ -297,7 +299,7 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
               style={{
                 position: "absolute",
                 top: `${1.39 + redLineTop - circleDiameter / 2}px`,
-                left: `${(79 - circleDiameter / 2) - 8 }px`,
+                left: `${(timeColumnWidth - circleDiameter / 2) - 1}px`,
                 width: `${circleDiameter}px`,
                 height: `${circleDiameter}px`,
                 backgroundColor: "rgba(255, 0, 0, 0.8)",
@@ -308,10 +310,10 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
           </>
         )}
 
-        <div className="grid h-full" style={{ gridTemplateColumns: `80px repeat(${columns.length}, 1fr)` }}>
+        <div className="grid h-full" style={{ gridTemplateColumns: `${timeColumnWidth}px repeat(${columns.length}, 1fr)` }}>
           {/* Time Column */}
           <div className="border-r border-gray-300">
-            <div className="relative h-full">
+            <div className="relative h-full text-right">
               {timeSlots.map((slot, index) => {
                 const slotTop =
                   (differenceInMinutes(slot, scheduleStart) / totalMinutes) * containerDimensions.height;
@@ -324,9 +326,9 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
                       width: "100%",
                       borderTop: "1px solid #e5e7eb",
                     }}
-                    className="text-xs text-gray-600 pl-1"
+                    className="text-xs text-gray-600 pr-1"
                   >
-                    {format(slot, "h:mm a")}
+                    {format(slot, timeColumnFormat)}
                   </div>
                 );
               })}
