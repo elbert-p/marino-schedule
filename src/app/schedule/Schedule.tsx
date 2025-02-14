@@ -269,11 +269,27 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
           <div key={col} className="border-r border-gray-300">
             <div className="h-11 border-b border-gray-300 bg-gray-100 flex flex-col items-center justify-center">
               <span className="font-semibold text-base">{col}</span>
-              {capacitiesByColumn[col] && (
-                <span className="text-xs">
-                  {capacitiesByColumn[col]!.LastCount}/{capacitiesByColumn[col]!.TotalCapacity}
-                </span>
-              )}
+              {capacitiesByColumn[col] && (() => {
+                const { LastCount, TotalCapacity } = capacitiesByColumn[col]!;
+                const ratio = LastCount / TotalCapacity;
+                let bgColor = "";
+                if (ratio < 0.4) {
+                  bgColor = "bg-green-200";
+                } else if (ratio < 0.6) {
+                  bgColor = "bg-blue-200";
+                } else if (ratio < 0.85) {
+                  bgColor = "bg-orange-200";
+                } else {
+                  bgColor = "bg-red-200";
+                }        
+                return (
+                  <span
+                    className={`text-xs px-1 rounded ${bgColor}`}
+                  >
+                    {LastCount}/{TotalCapacity}
+                  </span>
+                );
+              })()}
             </div>
           </div>
         ))}
