@@ -21,15 +21,18 @@ export default function HomePage() {
   const [eventResults, setEventResults] = useState<Event[]>([]);
   const [capacityResults, setCapacityResults] = useState<Capacity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshState, setRefreshState] = useState<"idle" | "loading" | "success">("idle");
 
   const gymCapacity = capacityResults.find(
     (cap) => cap.LocationName === "Marino Center - Gymnasium"
-  )
+  );
 
   // Fetch schedule events.
   useEffect(() => {
     const now = new Date();
-    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;    
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
+      now.getDate()
+    ).padStart(2, "0")}`;
     const [year, month, day] = todayStr.split("-");
     const today = `${year}-${month}-${Number(day)} 00:00:00`;
 
@@ -66,10 +69,13 @@ export default function HomePage() {
       })
       .then((rawData) => {
         const parsed = JSON.parse(rawData.d);
-        console.log(parsed)
+        console.log(parsed);
         const dailyResults = parsed.MonthlyBookingResults ?? [];
         const filtered = (dailyResults as Event[])
-          .filter((booking: Event) => booking.EventStart.split("T")[0] === todayStr)
+          .filter(
+            (booking: Event) =>
+              booking.EventStart.split("T")[0] === todayStr
+          )
           .map((booking: Event) => ({
             EventStart: booking.EventStart,
             EventEnd: booking.EventEnd,
@@ -86,9 +92,9 @@ export default function HomePage() {
       });
   }, []);
 
-  // Fetch facility counts.
-  useEffect(() => {
-    fetch(
+  // Function to fetch facility counts.
+  const fetchFacilityCounts = () => {
+    return fetch(
       `https://goboardapi.azurewebsites.net/api/FacilityCount/GetCountsByAccount?AccountAPIKey=${process.env.NEXT_PUBLIC_ACCOUNT_API_KEY}`
     )
       .then((res) => {
@@ -121,7 +127,24 @@ export default function HomePage() {
       .catch((error) => {
         console.error("Error fetching facility counts:", error);
       });
+  };
+
+  // Initial fetch for facility counts.
+  useEffect(() => {
+    fetchFacilityCounts();
   }, []);
+
+  // Handler for refresh button.
+  const refreshCapacities = () => {
+    if (refreshState !== "idle") return;
+    setRefreshState("loading");
+    fetchFacilityCounts().then(() => {
+      setRefreshState("success");
+      setTimeout(() => {
+        setRefreshState("idle");
+      }, 1500);
+    });
+  };
 
   if (loading) {
     return (
@@ -135,23 +158,41 @@ export default function HomePage() {
     <div className="min-h-screen flex flex-col">
       {/* Header */}
       <header className="bg-[#C41E3A] text-white py-2.5">
-        <h1 className="text-3xl text-center font-bold">Marino Court Schedule
-      </h1>
+        <h1 className="sm:text-3xl text-2xl text-center font-bold">
+          Marino Court Schedule
+        </h1>
       </header>
-  
+
       {/* Schedule area */}
       <main className="flex-1 relative outline">
-          <Schedule
-            events={eventResults}
-            capacities={capacityResults}
-          />
+        <Schedule events={eventResults} capacities={capacityResults} />
       </main>
-  
+
       {/* Footer */}
       <footer className="bg-[#C41E3A] text-white py-1 text-center">
-      {gymCapacity?.LastUpdatedDateAndTime && (
-        <>{now.toLocaleDateString([], {dateStyle: 'short'})} - Last updated: {new Date(gymCapacity.LastUpdatedDateAndTime).toLocaleTimeString([], {timeStyle: 'short'})}</>
-      )}
+        {gymCapacity?.LastUpdatedDateAndTime && (
+          <>
+            {now.toLocaleDateString([], { dateStyle: "short" })} - Last updated:{" "}
+            {new Date(gymCapacity.LastUpdatedDateAndTime).toLocaleTimeString([], {
+              timeStyle: "short",
+            })}
+          </>
+        )}
+          <button
+            onClick={refreshCapacities}
+            disabled={refreshState !== "idle"}
+            className={`ml-4 px-2 rounded transition-all duration-500 ${
+              refreshState === "loading"
+                ? "bg-gray-400 text-[#C41E3A] cursor-not-allowed"
+                : refreshState === "success"
+                ? "bg-green-500 text-white"
+                : "bg-white text-[#C41E3A] hover:bg-gray-200 active:bg-gray-400"
+            }`}
+          >
+            {refreshState === "loading" && "Loading"}
+            {refreshState === "success" && "Success"}
+            {refreshState === "idle" && "Refresh"}
+          </button>
       </footer>
     </div>
   );
