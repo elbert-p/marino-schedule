@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Schedule from "./schedule/Schedule";
 
 interface Event {
@@ -27,16 +27,23 @@ export default function HomePage() {
     (cap) => cap.LocationName === "Marino Center - Gymnasium"
   );
 
-  // Fetch schedule events.
-  useEffect(() => {
+  // Helper function to format the date string.
+  const getTodayString = () => {
     const now = new Date();
-    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
       now.getDate()
     ).padStart(2, "0")}`;
+  };
+
+  // Function to fetch schedule events.
+  const fetchEvents = useCallback(() => {
+    setLoading(true);
+    const now = new Date();
+    const todayStr = getTodayString();
     const [year, month, day] = todayStr.split("-");
     const today = `${year}-${month}-${Number(day)} 00:00:00`;
 
-    console.log(today);
+    console.log("Fetching events for:", today);
     const payload = {
       date: today,
       data: {
@@ -69,7 +76,7 @@ export default function HomePage() {
       })
       .then((rawData) => {
         const parsed = JSON.parse(rawData.d);
-        console.log(parsed);
+        console.log("Raw events data:", parsed);
         const dailyResults = parsed.MonthlyBookingResults ?? [];
         const filtered = (dailyResults as Event[])
           .filter(
@@ -83,7 +90,7 @@ export default function HomePage() {
             Room: booking.Room,
           }));
         setEventResults(filtered);
-        console.log("Events:", filtered);
+        console.log("Filtered events:", filtered);
         setLoading(false);
       })
       .catch((err) => {
@@ -91,6 +98,28 @@ export default function HomePage() {
         setLoading(false);
       });
   }, []);
+
+  // Initial fetch for events.
+  useEffect(() => {
+    fetchEvents();
+  }, [fetchEvents]);
+
+  // Set up a timer to automatically fetch events when the date changes.
+  useEffect(() => {
+    // Calculate milliseconds until next midnight.
+    const now = new Date();
+    const nextMidnight = new Date(now);
+    nextMidnight.setHours(24, 0, 0, 0);
+    const msUntilMidnight = nextMidnight.getTime() - now.getTime();
+
+    const timer = setTimeout(() => {
+      console.log("Midnight reached! Refreshing events...");
+      fetchEvents();
+    }, msUntilMidnight);
+
+    // Cleanup the timer on component unmount.
+    return () => clearTimeout(timer);
+  }, [fetchEvents]);
 
   // Function to fetch facility counts.
   const fetchFacilityCounts = () => {
@@ -142,7 +171,7 @@ export default function HomePage() {
       setRefreshState("success");
       setTimeout(() => {
         setRefreshState("idle");
-      }, 1500);
+      }, 7500);
     });
   };
 
