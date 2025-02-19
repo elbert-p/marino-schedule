@@ -38,7 +38,6 @@ export default function HomePage() {
   // Function to fetch schedule events.
   const fetchEvents = useCallback(() => {
     setLoading(true);
-    const now = new Date();
     const todayStr = getTodayString();
     const [year, month, day] = todayStr.split("-");
     const today = `${year}-${month}-${Number(day)} 00:00:00`;
