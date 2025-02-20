@@ -25,9 +25,20 @@ export interface Capacity {
 interface ScheduleProps {
   events: Event[];
   capacities: Capacity[];
+  loading?: boolean;
 }
 
-const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
+type TemplatePlaceholder = {
+  events: {
+    EventStart: string;
+    EventEnd: string;
+    EventName: string;
+    Room: string;
+  }[];
+};
+
+
+const Schedule: React.FC<ScheduleProps> = ({ events, capacities, loading = false }) => {
   // Ref for measuring the grid body height (excluding headers)
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerDimensions, setContainerDimensions] = useState({ width: 0, height: 0 });
@@ -65,7 +76,7 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
     
     return () => window.removeEventListener("resize", updateDimensions);
   }, []);
-  
+
   const timeColumnWidth = containerDimensions.width < 640 ? 42 : 70;
   const timeColumnFormat = containerDimensions.width < 640 ? "h a" : "h:mm a";
 
@@ -131,46 +142,103 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
     } : defaultColor;
   };
 
-  const eventsByColumn = useMemo(() => {
-    const grouping: Record<string, Event[]> = {};
-    columns.forEach((col) => (grouping[col] = []));
-    events.forEach((event) => {
-      const col = eventRoomToColumn[event.Room];
-      if (col) {
-        grouping[col].push(event);
-      }
-    });
-    return grouping;
-  }, [events]);
+  const placeholderEvents = useMemo(() => {
+    // Use today's date as the base.
+    const baseDate = new Date();
+    const todayStr = baseDate.toISOString().split("T")[0]; // e.g., "2025-02-19" if today is Feb 19
 
-  // ---------------------------------------------------------------------------
-  // 2. Capacities Assignment
-  // ---------------------------------------------------------------------------
-  const capacitiesByColumn = useMemo(() => {
-    const grouping: Record<string, Capacity | null> = {};
-    // Initialize all columns with null.
-    columns.forEach((col) => (grouping[col] = null));
+    // Template holds only the time portions.
+    const TEMPLATE: Record<string, TemplatePlaceholder> = {
+      "Court #1": {
+        events: [
+          { EventStart: "05:30:00", EventEnd: "06:30:00", EventName: "Open Basketball", Room: "BB Court #1" },
+          { EventStart: "06:30:00", EventEnd: "08:30:00", EventName: "Varsity Field Hockey", Room: "BB Court #1" },
+          { EventStart: "08:30:00", EventEnd: "14:00:00", EventName: "Open Basketball", Room: "BB Court #1" },
+          { EventStart: "14:00:00", EventEnd: "17:45:00", EventName: "Open Volleyball", Room: "BB Court #1" },
+          { EventStart: "18:00:00", EventEnd: "20:00:00", EventName: "Club Wrestling/Fencing", Room: "BB Court #1" },
+          { EventStart: "20:00:00", EventEnd: "22:00:00", EventName: "Club W Volleyball", Room: "BB Court #1" },
+          { EventStart: "22:00:00", EventEnd: "00:00:00", EventName: "Club M/W Basketball", Room: "BB Court #1" },
+        ],
+      },
+      "Court #2": {
+        events: [
+          { EventStart: "05:30:00", EventEnd: "00:00:00", EventName: "Open Basketball", Room: "BB Court #2" },
+        ],
+      },
+      "Court #3": {
+        events: [
+          { EventStart: "05:30:00", EventEnd: "17:00:00", EventName: "Open Basketball", Room: "BB Court #3" },
+          { EventStart: "17:00:00", EventEnd: "00:00:00", EventName: "Intramural Sports", Room: "BB Court #3" },
+        ],
+      },
+      "Studio A": {
+        events: [
+          { EventStart: "08:00:00", EventEnd: "09:00:00", EventName: "Group Fitness", Room: "Studio A - wood floor" },
+          { EventStart: "09:00:00", EventEnd: "10:00:00", EventName: "Group Fitness", Room: "Studio A - wood floor" },
+          { EventStart: "12:00:00", EventEnd: "13:00:00", EventName: "Group Fitness", Room: "Studio A - wood floor" },
+          { EventStart: "16:00:00", EventEnd: "17:00:00", EventName: "Group Fitness", Room: "Studio A - wood floor" },
+          { EventStart: "17:00:00", EventEnd: "18:00:00", EventName: "Group Fitness", Room: "Studio A - wood floor" },
+          { EventStart: "18:00:00", EventEnd: "19:00:00", EventName: "Group Fitness", Room: "Studio A - wood floor" },
+          { EventStart: "19:00:00", EventEnd: "21:00:00", EventName: "Group Fitness- GFIT Class", Room: "Studio A - wood floor" },
+        ],
+      },
+      "Studio B": {
+        events: [
+          { EventStart: "19:00:00", EventEnd: "20:00:00", EventName: "Capoeira- Instructional Class", Room: "Studio B - wood floor" },
+          { EventStart: "20:00:00", EventEnd: "21:00:00", EventName: "Group Fitness", Room: "Studio B - wood floor" },
+        ],
+      },
+      "Studio C": {
+        events: [
+          { EventStart: "06:00:00", EventEnd: "07:00:00", EventName: "Group Fitness", Room: "Studio C - Revolutionz" },
+          { EventStart: "07:00:00", EventEnd: "08:00:00", EventName: "Group Fitness", Room: "Studio C - Revolutionz" },
+          { EventStart: "08:00:00", EventEnd: "09:00:00", EventName: "Group Fitness", Room: "Studio C - Revolutionz" },
+          { EventStart: "09:15:00", EventEnd: "10:15:00", EventName: "Group Fitness", Room: "Studio C - Revolutionz" },
+          { EventStart: "16:00:00", EventEnd: "17:00:00", EventName: "Group Fitness", Room: "Studio C - Revolutionz" },
+          { EventStart: "17:00:00", EventEnd: "18:00:00", EventName: "Group Fitness", Room: "Studio C - Revolutionz" },
+          { EventStart: "18:00:00", EventEnd: "19:00:00", EventName: "Group Fitness", Room: "Studio C - Revolutionz" },
+          { EventStart: "19:15:00", EventEnd: "20:00:00", EventName: "Group Fitness", Room: "Studio C - Revolutionz" },
+          { EventStart: "20:15:00", EventEnd: "21:15:00", EventName: "Group Fitness", Room: "Studio C - Revolutionz" },
+        ],
+      },
+    };
 
-    capacities.forEach((cap) => {
-      if (cap.LocationName === "Marino Center - Gymnasium") {
-        grouping["Court #1"] = cap;
-        grouping["Court #2"] = cap;
-        grouping["Court #3"] = cap;
-      } else if (cap.LocationName === "Marino Center - Studio A") {
-        grouping["Studio A"] = cap;
-      } else if (cap.LocationName === "Marino Center - Studio B") {
-        grouping["Studio B"] = cap;
-      } else if (cap.LocationName === "Marino Center - Studio C") {
-        grouping["Studio C"] = cap;
-      }
+    // Now, convert each event's start and end times to full ISO strings based on today's date.
+    const events: Event[] = [];
+    Object.values(TEMPLATE).forEach((colData) => {
+      colData.events.forEach((evt) => {
+        const start = new Date(`${todayStr}T${evt.EventStart}`);
+        const end = new Date(`${todayStr}T${evt.EventEnd}`);
+        // If the end time is less than or equal to the start time, assume it goes into the next day.
+        if (end <= start) {
+          end.setDate(end.getDate() + 1);
+        }
+        events.push({
+          EventStart: start.toISOString(),
+          EventEnd: end.toISOString(),
+          EventName: evt.EventName,
+          Room: evt.Room,
+        });
+      });
     });
-    return grouping;
-  }, [capacities]);
+    return events;
+  }, [loading]);
+
+  // Use placeholder events if loading; otherwise use actual events.
+  const renderedEvents = loading ? placeholderEvents : events;
 
   // ---------------------------------------------------------------------------
   // 3. Dynamic Timeline & Hourly Time Slots
   // ---------------------------------------------------------------------------
   const { scheduleStart, scheduleEnd } = useMemo(() => {
+    // When loading, use a fallback timeline (e.g., 5 AM to midnight)
+    if (loading) {
+      const now = new Date();
+      return {
+        scheduleStart: new Date(now.setHours(5, 0, 0, 0)),
+        scheduleEnd: new Date(now.setHours(24, 0, 0, 0)),
+      };
+    }
     if (events.length === 0) {
       const now = new Date();
       return {
@@ -209,6 +277,44 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
   }, [events]);
 
   const totalMinutes = differenceInMinutes(scheduleEnd, scheduleStart);
+
+  const eventsByColumn = useMemo(() => {
+    const grouping: Record<string, Event[]> = {};
+    columns.forEach((col) => (grouping[col] = []));
+    renderedEvents.forEach((event) => {
+      const col = eventRoomToColumn[event.Room];
+      if (col && columns.includes(col)) {
+        grouping[col].push(event);
+      }
+    });
+    return grouping;
+  }, [renderedEvents, columns]);
+
+  // ---------------------------------------------------------------------------
+  // 2. Capacities Assignment
+  // ---------------------------------------------------------------------------
+  const capacitiesByColumn = useMemo(() => {
+    const grouping: Record<string, Capacity | null> = {};
+    // Initialize all columns with null.
+    columns.forEach((col) => (grouping[col] = null));
+
+    capacities.forEach((cap) => {
+      if (cap.LocationName === "Marino Center - Gymnasium") {
+        grouping["Court #1"] = cap;
+        grouping["Court #2"] = cap;
+        grouping["Court #3"] = cap;
+      } else if (cap.LocationName === "Marino Center - Studio A") {
+        grouping["Studio A"] = cap;
+      } else if (cap.LocationName === "Marino Center - Studio B") {
+        grouping["Studio B"] = cap;
+      } else if (cap.LocationName === "Marino Center - Studio C") {
+        grouping["Studio C"] = cap;
+      }
+    });
+    return grouping;
+  }, [capacities]);
+
+  
 
   const timeSlots = useMemo(() => {
     const slots = [];
@@ -249,11 +355,12 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
 
   // This is a rough measure for each room column:
   const approximateColumnWidth = containerDimensions.width
-    ? (containerDimensions.width - (timeColumnWidth-1)) / columns.length - 1 // 79 = time width - 1
+    ? (containerDimensions.width - (timeColumnWidth-1)) / columns.length - 1 // time width - 1
     : 0; 
   // ---------------------------------------------------------------------------
   // 5. Render Layout with Header and Separate Grid Body
   // ---------------------------------------------------------------------------
+  
   return (
     <main className="absolute inset-0 flex flex-col">
       {/* Header Row */}
@@ -373,9 +480,19 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities }) => {
                   );
                 })}
                 {eventsByColumn[col].map((event, idx) => {
+                  const eventStyle = getEventStyle(event);
+                  // When loading, render a placeholder box (no text, grey background, pulsing)
+                  if (loading) {
+                    return (
+                      <div
+                        key={idx}
+                        className="absolute left-[3px] right-[3px] bg-gray-300 border border-gray-400 rounded animate-pulse"
+                        style={eventStyle}
+                      ></div>
+                    );
+                  }
                   const eventStart = parseISO(event.EventStart);
                   const eventEnd = parseISO(event.EventEnd);
-                  const eventStyle = getEventStyle(event);
                   const isTooShort = parseFloat(eventStyle.height ?? "0") < 36;
                   const timeTextWidth = 109; // Pre-calculated max width for time text
                   const shortTimeTextWidth = 54; // width for just "h:mm a"

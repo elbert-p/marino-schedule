@@ -174,13 +174,13 @@ export default function HomePage() {
     });
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-black text-white">
-        Loading...
-      </div>
-    );
-  }
+  // if (loading) {
+  //   return (
+  //     <div className="flex items-center justify-center min-h-screen bg-black text-white">
+  //       Loading...
+  //     </div>
+  //   );
+  // }
   const now = new Date();
   return (
     <div className="min-h-screen flex flex-col">
@@ -193,34 +193,39 @@ export default function HomePage() {
 
       {/* Schedule area */}
       <main className="flex-1 relative outline">
-        <Schedule events={eventResults} capacities={capacityResults} />
+        <Schedule events={eventResults} capacities={capacityResults} loading={loading} />
       </main>
 
       {/* Footer */}
       <footer className="bg-[#C41E3A] text-white py-1 text-center">
-        {gymCapacity?.LastUpdatedDateAndTime && (
+        {now.toLocaleDateString([], { dateStyle: "short" })}
+        {!loading && (
           <>
-            {now.toLocaleDateString([], { dateStyle: "short" })} - Last updated:{" "}
-            {new Date(gymCapacity.LastUpdatedDateAndTime).toLocaleTimeString([], {
-              timeStyle: "short",
-            })}
-          </>
+          {gymCapacity?.LastUpdatedDateAndTime && (
+            <>
+              {" "}- Last updated:{" "}
+              {new Date(gymCapacity.LastUpdatedDateAndTime).toLocaleTimeString([], {
+                timeStyle: "short",
+              })}
+            </>
+          )}
+            <button
+              onClick={refreshCapacities}
+              disabled={refreshState !== "idle"}
+              className={`ml-4 px-2 rounded transition-all duration-500 ${
+                refreshState === "loading"
+                  ? "bg-gray-400 text-[#C41E3A] cursor-not-allowed"
+                  : refreshState === "success"
+                  ? "bg-green-500 text-white"
+                  : "bg-white text-[#C41E3A] hover:bg-gray-200 active:bg-gray-400"
+              }`}
+            >
+              {refreshState === "loading" && "Loading"}
+              {refreshState === "success" && "Success"}
+              {refreshState === "idle" && "Refresh"}
+            </button>
+            </>
         )}
-          <button
-            onClick={refreshCapacities}
-            disabled={refreshState !== "idle"}
-            className={`ml-4 px-2 rounded transition-all duration-500 ${
-              refreshState === "loading"
-                ? "bg-gray-400 text-[#C41E3A] cursor-not-allowed"
-                : refreshState === "success"
-                ? "bg-green-500 text-white"
-                : "bg-white text-[#C41E3A] hover:bg-gray-200 active:bg-gray-400"
-            }`}
-          >
-            {refreshState === "loading" && "Loading"}
-            {refreshState === "success" && "Success"}
-            {refreshState === "idle" && "Refresh"}
-          </button>
       </footer>
     </div>
   );
