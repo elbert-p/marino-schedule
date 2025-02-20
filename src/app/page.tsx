@@ -185,7 +185,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <header className="bg-[#C41E3A] text-white py-2.5">
+      <header className="bg-[#C41E3A] text-white py-2">
         <h1 className="sm:text-3xl text-2xl text-center font-bold">
           Marino Court Schedule
         </h1>

@@ -222,7 +222,7 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities, loading = false
       });
     });
     return events;
-  }, [loading]);
+  }, []);
 
   // Use placeholder events if loading; otherwise use actual events.
   const renderedEvents = loading ? placeholderEvents : events;
@@ -249,7 +249,7 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities, loading = false
     
     // Filter out "Open Basketball" events.
     const nonOpenBBEvents = events.filter(
-      (event) => event.EventName !== "Open Basketball"
+      (event) => event.EventName !== "Open Basketball" && columns.includes(eventRoomToColumn[event.Room])
     );
     let earliestEventStart: Date;
     if (nonOpenBBEvents.length > 0) {
@@ -274,7 +274,7 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities, loading = false
     const scheduleEnd = maxEnd;
     
     return { scheduleStart, scheduleEnd };
-  }, [events]);
+  }, [events, columns, loading]);
 
   const totalMinutes = differenceInMinutes(scheduleEnd, scheduleStart);
 
