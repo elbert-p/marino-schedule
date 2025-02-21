@@ -145,8 +145,8 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities, loading = false
   const placeholderEvents = useMemo(() => {
     // Use today's date as the base.
     const baseDate = new Date();
-    const todayStr = baseDate.toISOString().split("T")[0]; // e.g., "2025-02-19" if today is Feb 19
-
+    const todayStr = `${baseDate.getFullYear()}-${String(baseDate.getMonth() + 1).padStart(2, '0')}-${String(baseDate.getDate()).padStart(2, '0')}`;
+    
     // Template holds only the time portions.
     const TEMPLATE: Record<string, TemplatePlaceholder> = {
       "Court #1": {
