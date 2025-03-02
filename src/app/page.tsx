@@ -183,7 +183,7 @@ export default function HomePage() {
   // }
   const now = new Date();
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen h-svh flex flex-col">
       {/* Header */}
       <header className="bg-[#C41E3A] text-white py-2">
         <h1 className="sm:text-3xl text-2xl text-center font-bold">
