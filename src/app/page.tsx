@@ -18,33 +18,42 @@ interface Capacity {
 }
 
 export default function HomePage() {
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const [eventResults, setEventResults] = useState<Event[]>([]);
   const [capacityResults, setCapacityResults] = useState<Capacity[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshState, setRefreshState] = useState<"idle" | "loading" | "success">("idle");
+  const [refreshState, setRefreshState] = useState<"idle" | "loading" | "success">("loading");
 
   const gymCapacity = capacityResults.find(
     (cap) => cap.LocationName === "Marino Center - Gymnasium"
   );
 
-  // Helper function to format the date string.
-  const getTodayString = () => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
-      now.getDate()
+  // Helper function to check if the selected date is the current day.
+  const isToday = (date: Date) => {
+    const today = new Date();
+    return (
+      date.getDate() === today.getDate() &&
+      date.getMonth() === today.getMonth() &&
+      date.getFullYear() === today.getFullYear()
+    );
+  };
+
+  // Helper function to format a Date object to a 'YYYY-MM-DD' string.
+  const formatDateToString = (date: Date) => {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
+      date.getDate()
     ).padStart(2, "0")}`;
   };
 
-  // Function to fetch schedule events.
+  // Function to fetch schedule events for the selected date.
   const fetchEvents = useCallback(() => {
     setLoading(true);
-    const todayStr = getTodayString();
-    const [year, month, day] = todayStr.split("-");
-    const today = `${year}-${month}-${Number(day)} 00:00:00`;
+    const dateStr = formatDateToString(selectedDate);
+    const requestDate = `${dateStr} 00:00:00`;
 
-    console.log("Fetching events for:", today);
+    console.log("Fetching events for:", requestDate);
     const payload = {
-      date: today,
+      date: requestDate,
       data: {
         BuildingId: 175,
         GroupTypeId: -1,
@@ -80,7 +89,7 @@ export default function HomePage() {
         const filtered = (dailyResults as Event[])
           .filter(
             (booking: Event) =>
-              booking.EventStart.split("T")[0] === todayStr
+              booking.EventStart.split("T")[0] === dateStr
           )
           .map((booking: Event) => ({
             EventStart: booking.EventStart,
@@ -96,37 +105,45 @@ export default function HomePage() {
         console.error("Error fetching schedule data:", err);
         setLoading(false);
       });
-  }, []);
+  }, [selectedDate]);
 
-  // Initial fetch for events.
+  // Fetch events whenever the selected date changes.
   useEffect(() => {
     fetchEvents();
   }, [fetchEvents]);
 
-  // Set up a timer to automatically fetch events when the date changes.
+  // Set up a timer to automatically advance to the current day at midnight,
+  // only if the user is currently viewing today's schedule.
   useEffect(() => {
-    // Calculate milliseconds until next midnight.
-    const now = new Date();
-    const nextMidnight = new Date(now);
-    nextMidnight.setHours(24, 0, 0, 0);
-    const msUntilMidnight = nextMidnight.getTime() - now.getTime();
+    let timer: NodeJS.Timeout;
 
-    const timer = setTimeout(() => {
-      console.log("Midnight reached! Refreshing events...");
-      fetchEvents();
-    }, msUntilMidnight);
+    if (isToday(selectedDate)) {
+      // If viewing today, set a timer to advance to the next day at midnight.
+      const now = new Date();
+      const nextMidnight = new Date(now);
+      nextMidnight.setHours(24, 0, 0, 0);
+      const msUntilMidnight = nextMidnight.getTime() - now.getTime();
 
-    // Cleanup the timer on component unmount.
+      timer = setTimeout(() => {
+        console.log("Midnight reached! Advancing to the new day...");
+        setSelectedDate(new Date());
+      }, msUntilMidnight);
+    }
+
+    // Cleanup function to clear the timer if the component unmounts
+    // or if the selectedDate changes, which triggers the effect again.
     return () => clearTimeout(timer);
-  }, [fetchEvents]);
+  }, [selectedDate]);
 
   // Function to fetch facility counts.
   const fetchFacilityCounts = () => {
+    setRefreshState("loading");
     return fetch(
       `https://goboardapi.azurewebsites.net/api/FacilityCount/GetCountsByAccount?AccountAPIKey=${process.env.NEXT_PUBLIC_ACCOUNT_API_KEY}`
     )
       .then((res) => {
         if (!res.ok) {
+          setRefreshState("idle");
           throw new Error(`Error fetching facilities: ${res.status}`);
         }
         return res.json();
@@ -150,6 +167,7 @@ export default function HomePage() {
             LastUpdatedDateAndTime: facility.LastUpdatedDateAndTime,
           }));
         setCapacityResults(filteredFacilities);
+        setRefreshState("idle");
         console.log("Capacities:", filteredFacilities);
       })
       .catch((error) => {
@@ -174,41 +192,82 @@ export default function HomePage() {
     });
   };
 
-  // if (loading) {
-  //   return (
-  //     <div className="flex items-center justify-center min-h-screen bg-black text-white">
-  //       Loading...
-  //     </div>
-  //   );
-  // }
-  const now = new Date();
+  const handlePrevDay = () => {
+    const newDate = new Date(selectedDate);
+    newDate.setDate(newDate.getDate() - 1);
+    setSelectedDate(newDate);
+  };
+
+  const handleNextDay = () => {
+    const newDate = new Date(selectedDate);
+    newDate.setDate(newDate.getDate() + 1);
+    setSelectedDate(newDate);
+  };
+
   return (
     <div className="min-h-svh flex flex-col">
       {/* Header */}
       <header className="bg-[#C41E3A] text-white py-2">
-        <h1 className="sm:text-3xl text-2xl text-center font-bold">
-          Marino Court Schedule
-        </h1>
+        <div className="container mx-auto flex justify-center items-center flex-wrap pl-2 sm:gap-x-4 gap-x-2 gap-y-2">
+          <h1 className="sm:text-3xl text-2xl font-bold text-center">
+            Marino Schedule
+          </h1>
+          <div className="flex items-center sm:gap-1">
+            <button
+              onClick={handlePrevDay}
+              className="p-0.5 rounded-full text-white/80 hover:bg-white/20 hover:text-white transition-colors"
+              aria-label="Previous day"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+            </button>
+            <input
+              type="date"
+              value={formatDateToString(selectedDate)}
+              onChange={(e) => {
+                if (e.target.value) {
+                  setSelectedDate(new Date(e.target.value + "T00:00:00"));
+                }
+              }}
+              className="bg-white/20 text-white p-1 rounded-md border border-white/50 text-sm sm:w-32 w-29"
+            />
+            <button
+              onClick={handleNextDay}
+              className="p-0.5 rounded-full text-white/80 hover:bg-white/20 hover:text-white transition-colors"
+              aria-label="Next day"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </div>
+        </div>
       </header>
 
       {/* Schedule area */}
       <main className="flex-1 relative outline">
-        <Schedule events={eventResults} capacities={capacityResults} loading={loading} />
+        <Schedule events={eventResults} capacities={capacityResults} loading={loading} isToday={isToday(selectedDate)}/>
       </main>
 
       {/* Footer */}
-      <footer className="bg-[#C41E3A] text-white py-1 text-center">
-        {now.toLocaleDateString([], { dateStyle: "short" })}
-        {!loading && (
+      <footer className="bg-[#C41E3A] text-white py-1 text-center h-8 flex items-center justify-center">
+        {isToday(selectedDate) && (
           <>
-          {gymCapacity?.LastUpdatedDateAndTime && (
-            <>
-              {" "}- Last updated:{" "}
-              {new Date(gymCapacity.LastUpdatedDateAndTime).toLocaleTimeString([], {
-                timeStyle: "short",
-              })}
-            </>
-          )}
+            {gymCapacity?.LastUpdatedDateAndTime ? (
+              <span>
+                Capacities last updated:{" "}
+                {new Date(gymCapacity.LastUpdatedDateAndTime).toLocaleTimeString([], {
+                  timeStyle: "short",
+                })}
+              </span>
+            ) : (
+              <span>
+                {refreshState === 'idle'
+                  ? 'Refresh to load capacities'
+                  : 'Capacities loading...'}
+              </span>
+            )}
             <button
               onClick={refreshCapacities}
               disabled={refreshState !== "idle"}
@@ -224,7 +283,7 @@ export default function HomePage() {
               {refreshState === "success" && "Success"}
               {refreshState === "idle" && "Refresh"}
             </button>
-            </>
+          </>
         )}
       </footer>
     </div>

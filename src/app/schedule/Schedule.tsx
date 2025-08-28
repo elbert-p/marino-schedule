@@ -26,6 +26,7 @@ interface ScheduleProps {
   events: Event[];
   capacities: Capacity[];
   loading?: boolean;
+  isToday?: boolean;
 }
 
 type TemplatePlaceholder = {
@@ -38,7 +39,7 @@ type TemplatePlaceholder = {
 };
 
 
-const Schedule: React.FC<ScheduleProps> = ({ events, capacities, loading = false }) => {
+const Schedule: React.FC<ScheduleProps> = ({ events, capacities, loading = false, isToday = false }) => {
   // Ref for measuring the grid body height (excluding headers)
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerDimensions, setContainerDimensions] = useState({ width: 0, height: 0 });
@@ -350,7 +351,7 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities, loading = false
     redLineTop = (minutesFromStart / totalMinutes) * containerDimensions.height;
   }
 
-  // Define the circle's diameter (adjust as needed)
+  // Define the circle's diameter
   const circleDiameter = 15; // in pixels
 
   // This is a rough measure for each room column:
@@ -376,7 +377,7 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities, loading = false
           <div key={col} className="border-r border-gray-300">
             <div className="h-11 border-b border-gray-300 bg-gray-100 flex flex-col items-center justify-center">
               <span className="font-semibold text-base">{col}</span>
-              {capacitiesByColumn[col] && (() => {
+              {isToday && capacitiesByColumn[col] && (() => {
                 const { LastCount, TotalCapacity } = capacitiesByColumn[col]!;
                 const ratio = LastCount / TotalCapacity;
                 let bgColor = "";
