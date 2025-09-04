@@ -248,9 +248,9 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities, loading = false
       };
     }
     
-    // Filter out "Open Basketball" events.
+    // Filter out "Open Basketball" events from ALL columns to get an accurate time range.
     const nonOpenBBEvents = events.filter(
-      (event) => event.EventName !== "Open Basketball" && columns.includes(eventRoomToColumn[event.Room])
+      (event) => event.EventName !== "Open Basketball"
     );
     let earliestEventStart: Date;
     if (nonOpenBBEvents.length > 0) {
