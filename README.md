@@ -13,7 +13,7 @@ Northeastern University students seeking to use the Marino Recreation Center fac
 ## ✨ The Solution
 The Marino Center Schedule is a web application that solves this problem by consolidating all relevant data into a single, user-friendly interface. By integrating with multiple university API endpoints, this tool provides a clear, accessible, and unified view of all gym events and facility capacities.
 
-This project transforms a scattered and confusing dataset into a streamlined and intuitive tool, significantly improving student access to gym facilities and information. In its first month, the application successfully **served over 100 users**, demonstrating a clear demand for a centralized scheduling solution.
+This project transforms a scattered and confusing dataset into a streamlined and intuitive tool, significantly improving student access to gym facilities and information. In its first month, the application successfully **gained over 100 users**, demonstrating a clear demand for a centralized scheduling solution.
 
 ## 🚀 Key Features
 * **Unified Event Schedule:** A comprehensive, interactive timeline displaying all activities across the various courts and studios, including open recreation, group fitness, and club sports.
