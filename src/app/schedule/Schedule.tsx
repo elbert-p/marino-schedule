@@ -257,7 +257,7 @@ const Schedule: React.FC<ScheduleProps> = ({ events, capacities, loading = false
       const eventStarts = nonOpenBBEvents.map((event) => parseISO(event.EventStart));
       earliestEventStart = new Date(Math.min(...eventStarts.map((d) => d.getTime())));
       // Buffer for earliest start time (e.g., at least 30 mins before the first event).
-      earliestEventStart = addMinutes(earliestEventStart, -30);
+      // earliestEventStart = addMinutes(earliestEventStart, -30);
     } else {
       // Fallback: if all events are "Open Basketball", use the earliest event start.
       const eventStarts = events.map((event) => parseISO(event.EventStart));

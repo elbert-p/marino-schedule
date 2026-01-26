@@ -51,6 +51,13 @@ export default function HomePage() {
     const dateStr = formatDateToString(selectedDate);
     const requestDate = `${dateStr} 00:00:00`;
 
+    // Define helper function to decode HTML entities
+    const decodeHtml = (html: string) => {
+      const txt = document.createElement("textarea");
+      txt.innerHTML = html;
+      return txt.value;
+    };
+
     console.log("Fetching events for:", requestDate);
     const payload = {
       date: requestDate,
@@ -94,8 +101,8 @@ export default function HomePage() {
           .map((booking: Event) => ({
             EventStart: booking.EventStart,
             EventEnd: booking.EventEnd,
-            EventName: booking.EventName,
-            Room: booking.Room,
+            EventName: decodeHtml(booking.EventName),
+            Room: decodeHtml(booking.Room),
           }));
         setEventResults(filtered);
         console.log("Filtered events:", filtered);
